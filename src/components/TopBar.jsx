@@ -12,7 +12,7 @@ export default function TopBar({ view, setView, startNewWorkflow, loadDemoRun, s
     if (view === 'results') return (
       <>
         <button className="btn ghost" onClick={loadDemoRun}>Load Demo Run</button>
-        <button className="btn primary" onClick={startNewWorkflow}>+ New Quantification</button>
+        <button className="btn primary" onClick={startNewWorkflow}>Add New</button>
       </>
     )
 
@@ -46,7 +46,7 @@ export default function TopBar({ view, setView, startNewWorkflow, loadDemoRun, s
 
     if (view === 'detail') return (
       <>
-        <button className="btn ghost" onClick={startNewWorkflow}>+ New Quantification</button>
+        <button className="btn ghost" onClick={startNewWorkflow}>Add New</button>
         <button className="btn" onClick={() => setView('results')}>Back to Results</button>
       </>
     )
