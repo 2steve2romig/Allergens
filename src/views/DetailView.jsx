@@ -37,18 +37,18 @@ function CriteriaRow({ cr }) {
 }
 
 export default function DetailView({ result, fieldValue, setView }) {
-  const storedSamples = result?.resultSamples || []
-  const samples = storedSamples.length > 0
-    ? storedSamples
-    : (savedQuant && allergen && curve)
-      ? calcSampleRows(savedQuant, allergen, curve, stdRows)
-      : []
   const savedQuant = result?.savedQuant
   const allergen   = savedQuant ? getAllergen(savedQuant.allergenId) : null
   const stdRows    = savedQuant && allergen ? calcStdRows(savedQuant, allergen) : []
   const curve      = stdRows.length > 0 ? fitCurve(stdRows, allergen) : null
   const qc         = curve ? runQC(stdRows, curve, allergen) : null
   const criteria   = curve ? evaluateCriteria(allergen, stdRows, curve) : null
+  const storedSamples = result?.resultSamples || []
+  const samples = storedSamples.length > 0
+    ? storedSamples
+    : (savedQuant && allergen && curve)
+      ? calcSampleRows(savedQuant, allergen, curve, stdRows)
+      : []
   const isCompetitive = allergen?.assayFormat === 'competitive'
   const hasCOA     = allergen?.standards.some(s => s.meanOD != null)
   const unit       = allergen?.unit || samples[0]?.unit || 'ppm'
