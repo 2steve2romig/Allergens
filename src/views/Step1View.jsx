@@ -249,6 +249,8 @@ function ruleLabel(f) {
 }
 
 function ReviewStage({ coaFields, updateCoaField, validationRun, setValidationRun, sum, filename, resetStep1, handleImport }) {
+  const [showRules, setShowRules] = useState(false)
+
   return (
     <div className="card">
       <div className="card-header">
@@ -268,13 +270,45 @@ function ReviewStage({ coaFields, updateCoaField, validationRun, setValidationRu
           <div className="meta"><div className="k">Import Ready</div><div className="v">{sum.complete && validationRun ? 'Yes' : 'No'}</div></div>
         </div>
 
+        {showRules && (
+          <div style={{
+            background: '#f4f7fb', border: '1px solid #dde6f0', borderRadius: 10,
+            padding: '14px 16px',
+          }}>
+            <div className="small muted" style={{ marginBottom: 10, fontWeight: 600 }}>Validation Rules</div>
+            <div style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>
+              {coaFields.map(f => (
+                <div key={f.key} style={{ display: 'flex', gap: 12, fontSize: 13 }}>
+                  <span style={{ width: 160, color: 'var(--muted)', flexShrink: 0 }}>{f.label}</span>
+                  <span style={{ fontWeight: 500 }}>{ruleLabel(f)}</span>
+                </div>
+              ))}
+            </div>
+          </div>
+        )}
+
         <div className="table-shell">
           <table className="editable">
             <thead>
               <tr>
-                <th style={{ width: '26%' }}>Field</th>
+                <th style={{ width: '26%' }}>
+                  <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+                    Field
+                    <button
+                      onClick={() => setShowRules(s => !s)}
+                      title={showRules ? 'Hide validation rules' : 'Show validation rules'}
+                      style={{
+                        display: 'inline-flex', alignItems: 'center', justifyContent: 'center',
+                        width: 18, height: 18, borderRadius: '50%', border: 'none',
+                        background: showRules ? 'var(--accent)' : '#c4d0de',
+                        color: '#fff', fontSize: 11, fontWeight: 700,
+                        cursor: 'pointer', flexShrink: 0, lineHeight: 1,
+                        fontStyle: 'italic', fontFamily: 'Georgia, serif',
+                      }}
+                    >i</button>
+                  </div>
+                </th>
                 <th>Extracted Value</th>
-                <th style={{ width: '17%' }}>Rule</th>
                 <th style={{ width: '17%' }}>Status</th>
               </tr>
             </thead>
@@ -291,7 +325,6 @@ function ReviewStage({ coaFields, updateCoaField, validationRun, setValidationRu
                         onChange={e => updateCoaField(f.key, e.target.value)}
                       />
                     </td>
-                    <td>{ruleLabel(f)}</td>
                     <td className={validationRun ? (check.ok ? 'rule-pass' : 'rule-fail') : ''}>
                       {validationRun ? (check.ok ? '✓ Valid' : check.msg) : 'Awaiting validation'}
                     </td>
