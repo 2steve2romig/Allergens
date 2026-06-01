@@ -1,4 +1,4 @@
-import { useState, useCallback } from 'react'
+import { useState, useCallback, useEffect } from 'react'
 import Sidebar from './components/Sidebar.jsx'
 import TopBar from './components/TopBar.jsx'
 import ResultsView from './views/ResultsView.jsx'
@@ -11,6 +11,11 @@ import { initialCoaFields, initialResults, initialQuant } from './data.js'
 import { getAllergen } from './allergens.js'
 import { calcStdRows, calcSampleRows, fitCurve, validationSummary } from './utils.js'
 
+function loadLS(key, fallback) {
+  try { const v = localStorage.getItem(key); return v ? JSON.parse(v) : fallback }
+  catch { return fallback }
+}
+
 export default function App() {
   const [view,                setView]                = useState('results')
   const [step1Stage,          setStep1Stage]          = useState('upload')
@@ -19,9 +24,13 @@ export default function App() {
   const [imported,            setImported]            = useState(false)
   const [selectedResultId,    setSelectedResultId]    = useState('AQ-24018')
   const [highlightedResultId, setHighlightedResultId] = useState(null)
-  const [coaFields,           setCoaFields]           = useState(initialCoaFields)
-  const [quant,               setQuant]               = useState(initialQuant)
-  const [results,             setResults]             = useState(initialResults)
+  const [coaFields,           setCoaFields]           = useState(() => loadLS('aiq-coafields', initialCoaFields))
+  const [quant,               setQuant]               = useState(() => loadLS('aiq-quant', initialQuant))
+  const [results,             setResults]             = useState(() => loadLS('aiq-results', initialResults))
+
+  useEffect(() => { localStorage.setItem('aiq-coafields', JSON.stringify(coaFields)) }, [coaFields])
+  useEffect(() => { localStorage.setItem('aiq-quant', JSON.stringify(quant)) }, [quant])
+  useEffect(() => { localStorage.setItem('aiq-results', JSON.stringify(results)) }, [results])
 
   const fieldValue = useCallback((key) => (
     coaFields.find(f => f.key === key)?.value || ''
@@ -40,9 +49,7 @@ export default function App() {
     marks.forEach((value, index) => {
       setTimeout(() => {
         setIngestProgress(value)
-        if (value === 100) {
-          setTimeout(() => setStep1Stage('success'), 350)
-        }
+        if (value === 100) setTimeout(() => setStep1Stage('success'), 350)
       }, 350 + index * 420)
     })
   }, [])
@@ -97,31 +104,29 @@ export default function App() {
     setView('step1')
   }, [])
 
-  const runGuidedDemo = useCallback(() => {
-    const allergen   = getAllergen(quant.allergenId)
-    const stdRows    = calcStdRows(quant, allergen)
-    const curve      = fitCurve(stdRows)
-    const samples    = calcSampleRows(quant, allergen, curve, stdRows)
-    const quantifiable = samples.filter(s => s.rangeClass === 'green').length
-    const savedId    = 'AQ-24019'
-    setResults(prev => {
-      if (prev.find(r => r.id === savedId)) return prev
-      return [{
-        id: savedId, date: quant.assayDate, assay: allergen.name,
-        lot: fieldValue('lot'), operator: 'Steve Romig',
-        sampleCount: samples.length, quantifiable: `${quantifiable} / ${samples.length}`,
-        flags: `${samples.length - quantifiable} outside RoQ`, status: 'Completed',
-        product: fieldValue('product'), kit: fieldValue('catalogNo'),
-        notes: `Imported from ${fieldValue('product')} lot ${fieldValue('lot')}`,
-        resultSamples: samples,
-      }, ...prev]
-    })
-    setSelectedResultId(savedId)
-    setHighlightedResultId(savedId)
+  const loadDemoRun = useCallback(() => {
+    setQuant(initialQuant)
+    setCoaFields(initialCoaFields)
     setValidationRun(true)
     setImported(true)
-    setView('detail')
-  }, [quant, fieldValue])
+    setView('step2')
+  }, [])
+
+  const resetAll = useCallback(() => {
+    setResults(initialResults)
+    setQuant(initialQuant)
+    setCoaFields(initialCoaFields)
+    setValidationRun(false)
+    setImported(false)
+    setStep1Stage('upload')
+    setIngestProgress(0)
+    setSelectedResultId('AQ-24018')
+    setHighlightedResultId(null)
+    localStorage.removeItem('aiq-results')
+    localStorage.removeItem('aiq-quant')
+    localStorage.removeItem('aiq-coafields')
+    setView('results')
+  }, [])
 
   const sum           = validationSummary(coaFields)
   const currentResult = results.find(r => r.id === selectedResultId) || results[0]
@@ -134,7 +139,7 @@ export default function App() {
           view={view}
           setView={setView}
           startNewWorkflow={startNewWorkflow}
-          runGuidedDemo={runGuidedDemo}
+          loadDemoRun={loadDemoRun}
           step1Stage={step1Stage}
           validationRun={validationRun}
           sum={sum}
@@ -178,11 +183,10 @@ export default function App() {
             <DetailView
               result={currentResult}
               fieldValue={fieldValue}
-              quant={quant}
               setView={setView}
             />
           )}
-          {view === 'settings' && <SettingsView />}
+          {view === 'settings' && <SettingsView resetAll={resetAll} />}
           {view === 'help'     && <HelpView />}
         </div>
       </main>

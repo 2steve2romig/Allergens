@@ -7,21 +7,21 @@ const headerMap = {
   help:     ['AllergenIQ Help',                      'View the guided workflow and demo usage notes.'],
 }
 
-export default function TopBar({ view, setView, startNewWorkflow, runGuidedDemo, step1Stage, validationRun, sum }) {
+export default function TopBar({ view, setView, startNewWorkflow, loadDemoRun, step1Stage, validationRun, sum }) {
   const [title, subtitle] = headerMap[view] || ['', '']
 
   const renderActions = () => {
     if (view === 'results') return (
       <>
-        <button className="btn ghost" onClick={runGuidedDemo}>Run Guided Demo</button>
-        <button className="btn primary" onClick={startNewWorkflow}>Add New</button>
+        <button className="btn ghost" onClick={loadDemoRun}>Load Demo Run</button>
+        <button className="btn primary" onClick={startNewWorkflow}>+ New Quantification</button>
       </>
     )
 
     if (view === 'step1') {
       const labelMap = {
         upload:     'Awaiting upload',
-        processing: 'AI processing',
+        processing: 'AI processing…',
         success:    'Extraction complete',
         review:     sum.complete && validationRun ? 'Validated' : 'Awaiting validation',
       }
@@ -41,13 +41,16 @@ export default function TopBar({ view, setView, startNewWorkflow, runGuidedDemo,
 
     if (view === 'step2') return (
       <>
-        <span className="pill soft">Imported from COA</span>
-        <button className="btn" onClick={() => setView('step1')}>Back to Step 1</button>
+        <span className="pill soft">COA imported</span>
+        <button className="btn" onClick={() => setView('step1')}>← Back to Step 1</button>
       </>
     )
 
     if (view === 'detail') return (
-      <button className="btn" onClick={() => setView('results')}>Back to Results</button>
+      <>
+        <button className="btn ghost" onClick={startNewWorkflow}>+ New Quantification</button>
+        <button className="btn" onClick={() => setView('results')}>Back to Results</button>
+      </>
     )
 
     return <button className="btn" onClick={() => setView('results')}>Results</button>

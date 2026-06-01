@@ -1,9 +1,22 @@
 import { ALLERGENS, getAllergen } from '../allergens.js'
-import { calcStdRows, calcSampleRows, fitCurve } from '../utils.js'
+import { calcStdRows, calcSampleRows, fitCurve, runQC } from '../utils.js'
 import ChartSvg from '../components/ChartSvg.jsx'
 
 function fmt(n, d = 3) {
   return (n == null || isNaN(n)) ? '—' : Number(n).toFixed(d)
+}
+
+function QCPill({ check }) {
+  const cls = check.pass ? 'good' : 'bad'
+  return (
+    <div className="meta" style={{ padding: '10px 14px' }}>
+      <div className="k">{check.label}</div>
+      <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginTop: 6 }}>
+        <span style={{ fontWeight: 700 }}>{check.value}</span>
+        <span className={`pill ${cls}`} style={{ fontSize: 11 }}>{check.pass ? '✓ Pass' : '✗ Fail'}</span>
+      </div>
+    </div>
+  )
 }
 
 export default function Step2View({ coaFields, quant, setQuant, fieldValue, saveQuantification }) {
@@ -11,7 +24,12 @@ export default function Step2View({ coaFields, quant, setQuant, fieldValue, save
   const stdRows    = calcStdRows(quant, allergen)
   const curve      = fitCurve(stdRows)
   const sampleRows = calcSampleRows(quant, allergen, curve, stdRows)
+  const qc         = runQC(stdRows, curve)
   const goodCount  = sampleRows.filter(s => s.rangeClass === 'green').length
+  const hasCOA     = allergen.standards.some(s => s.meanOD != null)
+  const { unit }   = allergen
+
+  const r2Class = curve.r2 >= 0.999 ? 'good' : curve.r2 >= 0.99 ? 'warn' : 'bad'
 
   const setStdOD = (idx, field, value) => {
     setQuant(q => ({
@@ -38,8 +56,6 @@ export default function Step2View({ coaFields, quant, setQuant, fieldValue, save
     setQuant(q => ({ ...q, samples: q.samples.filter((_, i) => i !== idx) }))
   }
 
-  const { unit } = allergen
-
   return (
     <div className="stack">
 
@@ -65,9 +81,7 @@ export default function Step2View({ coaFields, quant, setQuant, fieldValue, save
                 value={quant.allergenId || 'histamine'}
                 onChange={e => setQuant(q => ({ ...q, allergenId: e.target.value }))}
               >
-                {ALLERGENS.map(a => (
-                  <option key={a.id} value={a.id}>{a.name}</option>
-                ))}
+                {ALLERGENS.map(a => <option key={a.id} value={a.id}>{a.name}</option>)}
               </select>
             </div>
             <div className="field">
@@ -94,8 +108,11 @@ export default function Step2View({ coaFields, quant, setQuant, fieldValue, save
         <div className="card-header">
           <div>
             <div className="section-title">Table 2 — COA Reference Data</div>
-            <div className="small muted" style={{ marginTop: 4 }}>Standard concentrations and OD values from the imported Certificate of Analysis.</div>
+            <div className="small muted" style={{ marginTop: 4 }}>Standard concentrations and reference OD values from the imported Certificate of Analysis.</div>
           </div>
+          {!hasCOA && (
+            <span className="pill warn">Import this allergen's COA to see reference OD values</span>
+          )}
         </div>
         <div className="card-body stack">
           <div className="grid grid-4">
@@ -105,14 +122,14 @@ export default function Step2View({ coaFields, quant, setQuant, fieldValue, save
             <div className="meta"><div className="k">Plate Lot</div><div className="v">{fieldValue('plateLot')}</div></div>
           </div>
 
-          <div className="worksheet-shell" style={{ '--min-w': 'unset' }}>
+          <div className="worksheet-shell">
             <table style={{ minWidth: 0 }}>
               <thead>
                 <tr>
                   <th>Std.</th>
                   <th>Conc. ({unit})</th>
-                  <th>COA Mean OD<sub>450</sub></th>
-                  <th>CV%</th>
+                  {hasCOA && <th>COA Mean OD<sub>450</sub></th>}
+                  {hasCOA && <th>CV%</th>}
                   <th>B/Bmax (%)</th>
                 </tr>
               </thead>
@@ -120,13 +137,13 @@ export default function Step2View({ coaFields, quant, setQuant, fieldValue, save
                 {allergen.standards.map((std, i) => {
                   const bb0 = std.meanOD != null && allergen.standards[0].meanOD != null
                     ? (std.meanOD / allergen.standards[0].meanOD * 100).toFixed(1)
-                    : '—'
+                    : i === 0 ? '100.0' : '—'
                   return (
                     <tr key={i}>
                       <td><strong>{std.std}</strong></td>
                       <td>{std.concentration}</td>
-                      <td>{std.meanOD != null ? std.meanOD.toFixed(3) : '—'}</td>
-                      <td>{std.cv != null ? std.cv.toFixed(1) : '—'}</td>
+                      {hasCOA && <td>{std.meanOD != null ? std.meanOD.toFixed(3) : '—'}</td>}
+                      {hasCOA && <td>{std.cv != null ? std.cv.toFixed(1) : '—'}</td>}
                       <td className="blue-col">{bb0}</td>
                     </tr>
                   )
@@ -153,13 +170,13 @@ export default function Step2View({ coaFields, quant, setQuant, fieldValue, save
         <div className="card-header">
           <div>
             <div className="section-title">Table 3 — Standard Curve</div>
-            <div className="small muted" style={{ marginTop: 4 }}>Enter OD readings from your plate reader for each standard well.</div>
+            <div className="small muted" style={{ marginTop: 4 }}>Enter OD readings from your plate reader for each calibration standard.</div>
           </div>
           <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap', alignItems: 'center' }}>
             <span className="pill soft">a = {fmt(curve.a, 6)}</span>
             <span className="pill soft">b = {fmt(curve.b, 4)}</span>
             <span className="pill soft">c = {fmt(curve.c, 3)}</span>
-            <span className="pill soft">R² = {fmt(curve.r2, 4)}</span>
+            <span className={`pill ${r2Class}`}>R² = {fmt(curve.r2, 4)}</span>
           </div>
         </div>
         <div className="card-body stack">
@@ -172,6 +189,8 @@ export default function Step2View({ coaFields, quant, setQuant, fieldValue, save
                   <th>OD<sub>1</sub></th>
                   <th>OD<sub>2</sub></th>
                   <th>Avg OD</th>
+                  {hasCOA && <th>COA Ref OD</th>}
+                  {hasCOA && <th>Δ OD</th>}
                   <th>B/Bmax (%)</th>
                   <th>Fitted ({unit})</th>
                 </tr>
@@ -181,6 +200,8 @@ export default function Step2View({ coaFields, quant, setQuant, fieldValue, save
                   const fitted = idx === 0
                     ? 0
                     : Math.max(0, curve.a * std.bb0 ** 2 + curve.b * std.bb0 + curve.c)
+                  const deltaOD = std.meanOD != null ? std.avgOD - std.meanOD : null
+                  const deltaClass = deltaOD != null && Math.abs(deltaOD) > 0.05 ? 'orange' : ''
                   return (
                     <tr key={idx}>
                       <td><strong>{std.std}</strong></td>
@@ -194,6 +215,12 @@ export default function Step2View({ coaFields, quant, setQuant, fieldValue, save
                           onChange={e => setStdOD(idx, 'od2', e.target.value)} />
                       </td>
                       <td>{fmt(std.avgOD)}</td>
+                      {hasCOA && <td style={{ color: 'var(--muted)' }}>{std.meanOD != null ? std.meanOD.toFixed(3) : '—'}</td>}
+                      {hasCOA && (
+                        <td className={deltaClass}>
+                          {deltaOD != null ? (deltaOD >= 0 ? '+' : '') + deltaOD.toFixed(3) : '—'}
+                        </td>
+                      )}
                       <td className="blue-col">{fmt(std.bb0, 1)}</td>
                       <td className="blue-col">{fitted.toFixed(2)}</td>
                     </tr>
@@ -201,6 +228,17 @@ export default function Step2View({ coaFields, quant, setQuant, fieldValue, save
                 })}
               </tbody>
             </table>
+          </div>
+
+          {/* QC Panel */}
+          <div>
+            <div className="small muted" style={{ marginBottom: 8 }}>Assay Quality Check</div>
+            <div className="grid grid-4">
+              <QCPill check={qc.blankOD} />
+              <QCPill check={qc.inhibition} />
+              <QCPill check={qc.monotonic} />
+              <QCPill check={qc.curveFit} />
+            </div>
           </div>
 
           <div className="chart">
@@ -217,22 +255,22 @@ export default function Step2View({ coaFields, quant, setQuant, fieldValue, save
         </div>
         <div className="card-body">
           <div className="worksheet-shell">
-            <table style={{ minWidth: 560 }}>
+            <table style={{ minWidth: 520 }}>
               <thead>
                 <tr>
-                  <th>#</th>
+                  <th style={{ width: 36 }}>#</th>
                   <th>Sample Name</th>
                   <th>OD<sub>1</sub></th>
                   <th>OD<sub>2</sub></th>
                   <th>Avg OD</th>
                   <th>B/Bmax (%)</th>
-                  <th></th>
+                  <th style={{ width: 40 }}></th>
                 </tr>
               </thead>
               <tbody>
                 {sampleRows.map((s, idx) => (
                   <tr key={idx}>
-                    <td style={{ width: 36, textAlign: 'center', color: 'var(--muted)', fontSize: 12 }}>{idx + 1}</td>
+                    <td style={{ textAlign: 'center', color: 'var(--muted)', fontSize: 12 }}>{idx + 1}</td>
                     <td>
                       <input type="text" value={s.name}
                         onChange={e => setSampleField(idx, 'name', e.target.value)} />
@@ -247,12 +285,10 @@ export default function Step2View({ coaFields, quant, setQuant, fieldValue, save
                     </td>
                     <td>{fmt(s.avgOD)}</td>
                     <td className="blue-col">{fmt(s.bb0, 1)}</td>
-                    <td style={{ width: 36, textAlign: 'center' }}>
-                      <button
-                        onClick={() => removeSample(idx)}
-                        style={{ border: 'none', background: 'none', cursor: 'pointer', color: 'var(--muted)', fontSize: 16, lineHeight: 1 }}
-                        title="Remove sample"
-                      >×</button>
+                    <td style={{ textAlign: 'center' }}>
+                      <button onClick={() => removeSample(idx)}
+                        style={{ border: 'none', background: 'none', cursor: 'pointer', color: 'var(--muted)', fontSize: 16 }}
+                        title="Remove">×</button>
                     </td>
                   </tr>
                 ))}
@@ -267,15 +303,13 @@ export default function Step2View({ coaFields, quant, setQuant, fieldValue, save
         <div className="card-header">
           <div>
             <div className="section-title">Table 5 — ELISA Results</div>
-            <div className="small muted" style={{ marginTop: 4 }}>Concentrations calculated using quadratic polynomial regression (Y = aX² + bX + c).</div>
+            <div className="small muted" style={{ marginTop: 4 }}>Concentrations calculated by quadratic polynomial regression (Y = aX² + bX + c).</div>
           </div>
-          <div style={{ display: 'flex', gap: 8, alignItems: 'center' }}>
-            <span className="pill soft">{goodCount} / {sampleRows.length} quantifiable</span>
-          </div>
+          <span className="pill soft">{goodCount} / {sampleRows.length} quantifiable</span>
         </div>
         <div className="card-body stack">
           <div className="worksheet-shell">
-            <table style={{ minWidth: 640 }}>
+            <table style={{ minWidth: 620 }}>
               <thead>
                 <tr>
                   <th>Sample</th>
@@ -288,12 +322,8 @@ export default function Step2View({ coaFields, quant, setQuant, fieldValue, save
               </thead>
               <tbody>
                 {sampleRows.map((s, idx) => {
-                  const statusLabel = s.rangeClass === 'green'
-                    ? 'Quantified'
-                    : s.rangeClass === 'orange'
-                    ? '< LoQ'
-                    : '> ULoQ'
-                  const pillClass = s.rangeClass === 'green' ? 'good' : s.rangeClass === 'orange' ? 'bad' : 'warn'
+                  const statusLabel = s.rangeClass === 'green' ? 'Quantified' : s.rangeClass === 'orange' ? '< LoQ' : '> ULoQ'
+                  const pillClass   = s.rangeClass === 'green' ? 'good' : s.rangeClass === 'orange' ? 'bad' : 'warn'
                   return (
                     <tr key={idx}>
                       <td><strong>{s.name}</strong></td>
@@ -313,8 +343,8 @@ export default function Step2View({ coaFields, quant, setQuant, fieldValue, save
           </div>
 
           <div className="footer-actions">
-            <div>
-              <div className="small muted">Green = within RoQ · Orange = below LoQ · Yellow = above ULoQ (dilute and re-run)</div>
+            <div className="small muted">
+              Green = within RoQ · Orange = below LoQ · Yellow = above ULoQ (dilute and re-run)
             </div>
             <button className="btn primary" onClick={saveQuantification}>Save Quantification</button>
           </div>

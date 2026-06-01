@@ -126,3 +126,33 @@ export function calcSampleRows(quant, allergen, curve, stdRows) {
     return { ...s, avgOD, bb0, assayConc, assayText, sampleConc, rangeClass, unit }
   })
 }
+
+export function runQC(stdRows, curve) {
+  const std0OD = stdRows[0]?.avgOD || 0
+  const lastOD = stdRows[stdRows.length - 1]?.avgOD || 0
+  const inhibitionRatio = lastOD > 0 ? std0OD / lastOD : 0
+
+  let monotonic = true
+  for (let i = 1; i < stdRows.length; i++) {
+    if (stdRows[i].avgOD > stdRows[i - 1].avgOD) { monotonic = false; break }
+  }
+
+  return {
+    blankOD:    { pass: std0OD > 0.5,           value: std0OD.toFixed(3),              label: 'Blank OD' },
+    inhibition: { pass: inhibitionRatio > 2.0,   value: inhibitionRatio.toFixed(2) + '×', label: 'Signal Range (Std0/Stdn)' },
+    monotonic:  { pass: monotonic,               value: monotonic ? 'Decreasing' : 'Not monotonic', label: 'OD Monotonicity' },
+    curveFit:   { pass: curve.r2 >= 0.99,        value: curve.r2.toFixed(4),            label: 'Curve Fit R²' },
+  }
+}
+
+export function getNiceTicks(max, count = 4) {
+  if (max <= 0) return []
+  const rawStep = max / count
+  const magnitude = Math.pow(10, Math.floor(Math.log10(rawStep)))
+  const niceStep = [1, 2, 5, 10].map(m => m * magnitude).find(s => s >= rawStep) || magnitude * 10
+  const ticks = []
+  for (let v = niceStep; v <= max * 1.05; v += niceStep) {
+    ticks.push(Math.round(v * 10000) / 10000)
+  }
+  return ticks
+}
