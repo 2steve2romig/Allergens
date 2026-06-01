@@ -1,4 +1,4 @@
-import { formatDate, calcStdRows, fitCurve, runQC, evaluateCriteria } from '../utils.js'
+import { formatDate, calcStdRows, calcSampleRows, fitCurve, runQC, evaluateCriteria } from '../utils.js'
 import { getAllergen } from '../allergens.js'
 import ChartSvg from '../components/ChartSvg.jsx'
 
@@ -37,7 +37,12 @@ function CriteriaRow({ cr }) {
 }
 
 export default function DetailView({ result, fieldValue, setView }) {
-  const samples    = result?.resultSamples || []
+  const storedSamples = result?.resultSamples || []
+  const samples = storedSamples.length > 0
+    ? storedSamples
+    : (savedQuant && allergen && curve)
+      ? calcSampleRows(savedQuant, allergen, curve, stdRows)
+      : []
   const savedQuant = result?.savedQuant
   const allergen   = savedQuant ? getAllergen(savedQuant.allergenId) : null
   const stdRows    = savedQuant && allergen ? calcStdRows(savedQuant, allergen) : []
