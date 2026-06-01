@@ -5,14 +5,13 @@ const headerMap = {
   detail:   ['Quantification Result Detail',          'Review the saved quantification, assay inputs, and calculated sample concentrations.'],
 }
 
-export default function TopBar({ view, setView, startNewWorkflow, loadDemoRun, step1Stage, validationRun, sum }) {
+export default function TopBar({ view, setView, startNewWorkflow, step1Stage, validationRun, sum }) {
   const [title, subtitle] = headerMap[view] || ['', '']
 
   const renderActions = () => {
     if (view === 'results') return (
       <>
-        <button className="btn ghost" onClick={loadDemoRun}>Load Demo Run</button>
-        <button className="btn primary" onClick={startNewWorkflow}>Add New</button>
+<button className="btn primary" onClick={startNewWorkflow}>Add New</button>
       </>
     )
 

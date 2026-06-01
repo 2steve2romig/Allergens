@@ -102,14 +102,6 @@ export default function App() {
     setView('step1')
   }, [])
 
-  const loadDemoRun = useCallback(() => {
-    setQuant(initialQuant)
-    setCoaFields(initialCoaFields)
-    setValidationRun(true)
-    setImported(true)
-    setView('step2')
-  }, [])
-
 const sum           = validationSummary(coaFields)
   const currentResult = results.find(r => r.id === selectedResultId) || results[0]
 
@@ -121,7 +113,6 @@ const sum           = validationSummary(coaFields)
           view={view}
           setView={setView}
           startNewWorkflow={startNewWorkflow}
-          loadDemoRun={loadDemoRun}
           step1Stage={step1Stage}
           validationRun={validationRun}
           sum={sum}
