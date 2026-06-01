@@ -1,5 +1,4 @@
 const navItems = [
-  { id: 'results',      label: 'Home'    },
   { id: 'results-list', label: 'Results' },
   { id: 'add',          label: 'Add New' },
   { id: 'help',         label: 'Help'    },
@@ -7,7 +6,7 @@ const navItems = [
 
 export default function Sidebar({ view, setView, startNewWorkflow }) {
   const isActive = (id) => {
-    if (id === 'results' || id === 'results-list') return view === 'results' || view === 'detail'
+    if (id === 'results-list') return view === 'results' || view === 'detail'
     if (id === 'add') return view === 'step1' || view === 'step2'
     return view === id
   }
