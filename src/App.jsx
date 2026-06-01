@@ -92,7 +92,7 @@ export default function App() {
     setResults(prev => [newResult, ...prev])
     setSelectedResultId(id)
     setHighlightedResultId(id)
-    setView('detail')
+    setView('results')
   }, [quant, fieldValue])
 
   const startNewWorkflow = useCallback(() => {
