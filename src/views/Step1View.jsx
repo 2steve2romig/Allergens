@@ -48,7 +48,7 @@ export default function Step1View({
         <SuccessStage
           coaFields={coaFields}
           filename={filename || 'COA-KIT3065-LOT307626.pdf'}
-          onReview={() => setStep1Stage('review')}
+          onReview={() => { setStep1Stage('review'); setValidationRun(true) }}
         />
       )}
       {step1Stage === 'review'     && (
@@ -248,7 +248,7 @@ function ruleLabel(f) {
   return r
 }
 
-function ReviewStage({ coaFields, updateCoaField, validationRun, setValidationRun, sum, filename, resetStep1, handleImport }) {
+function ReviewStage({ coaFields, updateCoaField, sum, filename, resetStep1, handleImport }) {
   const [showRules, setShowRules] = useState(false)
 
   return (
@@ -258,7 +258,7 @@ function ReviewStage({ coaFields, updateCoaField, validationRun, setValidationRu
           <div className="section-title">Editable COA Master Table</div>
           <div className="small muted">Review extracted values, edit any field, validate, then import.</div>
         </div>
-        {sum.complete && validationRun
+        {sum.complete
           ? <span className="pill good">Validation complete</span>
           : <span className="pill warn">Review required</span>}
       </div>
@@ -266,8 +266,8 @@ function ReviewStage({ coaFields, updateCoaField, validationRun, setValidationRu
         <div className="grid grid-4">
           <div className="meta"><div className="k">Source File</div><div className="v">{filename}</div></div>
           <div className="meta"><div className="k">Extracted Fields</div><div className="v">{coaFields.length}</div></div>
-          <div className="meta"><div className="k">Valid Fields</div><div className="v">{validationRun ? sum.valid : '—'}</div></div>
-          <div className="meta"><div className="k">Import Ready</div><div className="v">{sum.complete && validationRun ? 'Yes' : 'No'}</div></div>
+          <div className="meta"><div className="k">Valid Fields</div><div className="v">{sum.valid}</div></div>
+          <div className="meta"><div className="k">Import Ready</div><div className="v">{sum.complete ? 'Yes' : 'No'}</div></div>
         </div>
 
         {showRules && (
@@ -325,8 +325,8 @@ function ReviewStage({ coaFields, updateCoaField, validationRun, setValidationRu
                         onChange={e => updateCoaField(f.key, e.target.value)}
                       />
                     </td>
-                    <td className={validationRun ? (check.ok ? 'rule-pass' : 'rule-fail') : ''}>
-                      {validationRun ? (check.ok ? '✓ Valid' : check.msg) : 'Awaiting validation'}
+                    <td className={check.ok ? 'rule-pass' : 'rule-fail'}>
+                      {check.ok ? '✓ Valid' : check.msg}
                     </td>
                   </tr>
                 )
@@ -340,22 +340,21 @@ function ReviewStage({ coaFields, updateCoaField, validationRun, setValidationRu
             <div>
               <div className="section-title">Validation Summary</div>
             </div>
-            {sum.complete && validationRun
+            {sum.complete
               ? <span className="pill good">All rules passed</span>
-              : <span className="pill warn">Validation required</span>}
+              : <span className="pill warn">Errors detected</span>}
           </div>
           <div className="card-body stack">
             <div className="grid grid-3">
-              <div className="meta"><div className="k">Valid Fields</div><div className="v">{validationRun ? sum.valid : 0} of {sum.total}</div></div>
-              <div className="meta"><div className="k">Flagged</div><div className="v">{validationRun ? sum.invalid : sum.total}</div></div>
-              <div className="meta"><div className="k">Import Status</div><div className="v">{sum.complete && validationRun ? 'Ready' : 'Pending validation'}</div></div>
+              <div className="meta"><div className="k">Valid Fields</div><div className="v">{sum.valid} of {sum.total}</div></div>
+              <div className="meta"><div className="k">Flagged</div><div className="v">{sum.invalid}</div></div>
+              <div className="meta"><div className="k">Import Status</div><div className="v">{sum.complete ? 'Ready' : 'Fix errors to import'}</div></div>
             </div>
             <div className="footer-actions">
-              <div className="small muted">Edit any value before validating. Import stays locked until all rules pass.</div>
+              <div className="small muted">Edit any value above to correct errors. Import unlocks when all fields pass.</div>
               <div style={{ display: 'flex', gap: 10, flexWrap: 'wrap' }}>
                 <button className="btn" onClick={resetStep1}>Start Over</button>
-                <button className="btn" onClick={() => setValidationRun(true)}>Validate All Fields</button>
-                <button className="btn primary" disabled={!(sum.complete && validationRun)} onClick={handleImport}>
+                <button className="btn primary" disabled={!sum.complete} onClick={handleImport}>
                   Import into Quantification →
                 </button>
               </div>

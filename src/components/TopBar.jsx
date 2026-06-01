@@ -20,13 +20,13 @@ export default function TopBar({ view, setView, startNewWorkflow, step1Stage, va
         upload:     'Awaiting upload',
         processing: 'AI processing…',
         success:    'Extraction complete',
-        review:     sum.complete && validationRun ? 'Validated' : 'Awaiting validation',
+        review:     sum.complete ? 'Validated' : 'Errors detected',
       }
       const clsMap = {
         upload:     'warn',
         processing: 'soft',
         success:    'good',
-        review:     sum.complete && validationRun ? 'good' : 'warn',
+        review:     sum.complete ? 'good' : 'warn',
       }
       return (
         <>
