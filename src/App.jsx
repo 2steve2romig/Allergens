@@ -5,7 +5,6 @@ import ResultsView from './views/ResultsView.jsx'
 import Step1View from './views/Step1View.jsx'
 import Step2View from './views/Step2View.jsx'
 import DetailView from './views/DetailView.jsx'
-import HelpView from './views/HelpView.jsx'
 import { initialCoaFields, initialResults, initialQuant } from './data.js'
 import { getAllergen } from './allergens.js'
 import { calcStdRows, calcSampleRows, fitCurve, validationSummary } from './utils.js'
@@ -169,7 +168,6 @@ const sum           = validationSummary(coaFields)
               setView={setView}
             />
           )}
-          {view === 'help' && <HelpView />}
         </div>
       </main>
     </div>

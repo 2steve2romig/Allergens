@@ -1,7 +1,6 @@
 const navItems = [
   { id: 'results-list', label: 'Results' },
   { id: 'add',          label: 'Add New' },
-  { id: 'help',         label: 'Help'    },
 ]
 
 export default function Sidebar({ view, setView, startNewWorkflow }) {
@@ -36,9 +35,6 @@ export default function Sidebar({ view, setView, startNewWorkflow }) {
         ))}
       </nav>
       <div className="nav-spacer" />
-      <div className="subnav">
-        <button type="button">❔ Help</button>
-      </div>
     </aside>
   )
 }
