@@ -87,6 +87,7 @@ export default function App() {
       kit:          fieldValue('catalogNo'),
       notes:        quant.assayDescription,
       resultSamples: samples,
+      savedQuant:   { ...quant },
     }
     setResults(prev => [newResult, ...prev])
     setSelectedResultId(id)

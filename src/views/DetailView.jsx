@@ -1,11 +1,58 @@
-import { formatDate } from '../utils.js'
+import { formatDate, calcStdRows, fitCurve, runQC, evaluateCriteria } from '../utils.js'
+import { getAllergen } from '../allergens.js'
+import ChartSvg from '../components/ChartSvg.jsx'
+
+function fmt(n, d = 3) {
+  return (n == null || isNaN(n)) ? '—' : Number(n).toFixed(d)
+}
+
+function QCPill({ check }) {
+  const cls = check.pass === null ? 'soft' : check.pass ? 'good' : 'bad'
+  return (
+    <div className="meta" style={{ padding: '10px 14px' }}>
+      <div className="k">{check.label}</div>
+      <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginTop: 6 }}>
+        <span style={{ fontWeight: 700, fontSize: 13 }}>{check.value}</span>
+        <span className={`pill ${cls}`} style={{ fontSize: 11 }}>
+          {check.pass === null ? '—' : check.pass ? '✓ Pass' : '✗ Fail'}
+        </span>
+      </div>
+    </div>
+  )
+}
+
+function CriteriaRow({ cr }) {
+  const cls = cr.pass === null ? 'soft' : cr.pass ? 'good' : 'bad'
+  return (
+    <div className="meta" style={{ padding: '10px 14px' }}>
+      <div className="k" style={{ textTransform: 'none', fontSize: 13, letterSpacing: 0 }}>{cr.text}</div>
+      <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginTop: 6 }}>
+        <span style={{ fontSize: 12, color: 'var(--muted)' }}>{cr.computed}</span>
+        <span className={`pill ${cls}`} style={{ fontSize: 11 }}>
+          {cr.pass === null ? 'No data' : cr.pass ? '✓ Pass' : '✗ Fail'}
+        </span>
+      </div>
+    </div>
+  )
+}
 
 export default function DetailView({ result, fieldValue, setView }) {
-  const samples = result?.resultSamples || []
-  const unit    = samples[0]?.unit || 'ppm'
+  const samples    = result?.resultSamples || []
+  const savedQuant = result?.savedQuant
+  const allergen   = savedQuant ? getAllergen(savedQuant.allergenId) : null
+  const stdRows    = savedQuant && allergen ? calcStdRows(savedQuant, allergen) : []
+  const curve      = stdRows.length > 0 ? fitCurve(stdRows, allergen) : null
+  const qc         = curve ? runQC(stdRows, curve, allergen) : null
+  const criteria   = curve ? evaluateCriteria(allergen, stdRows, curve) : null
+  const isCompetitive = allergen?.assayFormat === 'competitive'
+  const hasCOA     = allergen?.standards.some(s => s.meanOD != null)
+  const unit       = allergen?.unit || samples[0]?.unit || 'ppm'
+  const r2Class    = curve ? (curve.r2 >= 0.999 ? 'good' : curve.r2 >= 0.99 ? 'warn' : 'bad') : 'soft'
 
   return (
     <div className="stack">
+
+      {/* Summary strip */}
       <div className="result-summary">
         <div className="meta"><div className="k">Result ID</div><div className="v">{result?.id}</div></div>
         <div className="meta"><div className="k">Date</div><div className="v">{formatDate(result?.date)}</div></div>
@@ -13,6 +60,7 @@ export default function DetailView({ result, fieldValue, setView }) {
         <div className="meta"><div className="k">Status</div><div className="v">{result?.status}</div></div>
       </div>
 
+      {/* Run Summary + COA Snapshot */}
       <div className="detail-grid">
         <div className="card">
           <div className="card-header"><div className="section-title">Run Summary</div></div>
@@ -39,10 +87,112 @@ export default function DetailView({ result, fieldValue, setView }) {
         </div>
       </div>
 
+      {/* Standard Curve — only if quant data was saved */}
+      {savedQuant && curve && (
+        <div className="card">
+          <div className="card-header">
+            <div>
+              <div className="section-title">Standard Curve</div>
+              <div className="small muted" style={{ marginTop: 4 }}>
+                {isCompetitive ? 'Competitive inhibition ELISA' : 'Sandwich ELISA'}
+                {' · '}
+                {isCompetitive
+                  ? 'OD decreases with increasing concentration'
+                  : 'OD increases with increasing concentration'}
+              </div>
+            </div>
+            <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap', alignItems: 'center' }}>
+              <span className="pill soft">a = {fmt(curve.a, 6)}</span>
+              <span className="pill soft">b = {fmt(curve.b, 4)}</span>
+              <span className="pill soft">c = {fmt(curve.c, 3)}</span>
+              <span className={`pill ${r2Class}`}>R² = {fmt(curve.r2, 4)}</span>
+            </div>
+          </div>
+          <div className="card-body stack">
+
+            {/* Standard curve table — read-only */}
+            <div className="worksheet-shell">
+              <table style={{ minWidth: hasCOA ? 640 : 460 }}>
+                <thead>
+                  <tr>
+                    <th>Std.</th>
+                    <th>Conc. ({unit})</th>
+                    <th>OD<sub>1</sub></th>
+                    <th>OD<sub>2</sub></th>
+                    <th>Avg OD</th>
+                    {hasCOA && <th>COA Ref OD</th>}
+                    {isCompetitive && <th>B/Bmax (%)</th>}
+                    <th>{isCompetitive ? `Fitted (${unit})` : 'Fitted OD'}</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {stdRows.map((std, idx) => {
+                    const fitted = isCompetitive
+                      ? (idx === 0 ? 0 : Math.max(0, curve.a * std.bb0 ** 2 + curve.b * std.bb0 + curve.c))
+                      : Math.max(0, curve.a * std.concentration ** 2 + curve.b * std.concentration + curve.c)
+                    return (
+                      <tr key={idx}>
+                        <td><strong>{std.std}</strong></td>
+                        <td>{std.concentration}</td>
+                        <td>{fmt(std.od1)}</td>
+                        <td>{fmt(std.od2)}</td>
+                        <td>{fmt(std.avgOD)}</td>
+                        {hasCOA && <td style={{ color: 'var(--muted)' }}>{std.meanOD != null ? std.meanOD.toFixed(3) : '—'}</td>}
+                        {isCompetitive && <td className="blue-col">{fmt(std.bb0, 1)}</td>}
+                        <td className="blue-col">{fitted.toFixed(isCompetitive ? 2 : 3)}</td>
+                      </tr>
+                    )
+                  })}
+                </tbody>
+              </table>
+            </div>
+
+            {/* QC panel */}
+            <div>
+              <div className="small muted" style={{ marginBottom: 8 }}>Assay Quality Check</div>
+              <div className="grid grid-4">
+                <QCPill check={qc.blankOD} />
+                <QCPill check={qc.inhibition} />
+                <QCPill check={qc.monotonic} />
+                <QCPill check={qc.curveFit} />
+              </div>
+            </div>
+
+            {/* Chart */}
+            <div className="chart">
+              <ChartSvg stdRows={stdRows} curve={curve} allergen={allergen} />
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Acceptance Criteria — only if quant data was saved */}
+      {savedQuant && criteria && (
+        <div className="card">
+          <div className="card-header">
+            <div>
+              <div className="section-title">Acceptance Criteria</div>
+              <div className="small muted" style={{ marginTop: 4 }}>
+                {isCompetitive ? 'Competitive inhibition ELISA' : 'Sandwich ELISA'} acceptance criteria evaluated at time of save.
+              </div>
+            </div>
+            <span className={`pill ${criteria.every(c => c.pass) ? 'good' : criteria.some(c => c.pass === false) ? 'bad' : 'soft'}`}>
+              {criteria.filter(c => c.pass).length} / {criteria.length} pass
+            </span>
+          </div>
+          <div className="card-body">
+            <div className="grid grid-2" style={{ gap: 8 }}>
+              {criteria.map((cr, i) => <CriteriaRow key={i} cr={cr} />)}
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Sample Results */}
       <div className="card">
         <div className="card-header">
           <div>
-            <div className="section-title">Saved Quantification Results</div>
+            <div className="section-title">Sample Results</div>
             <div className="small muted">
               {samples.length > 0
                 ? `${samples.length} samples saved in this run.`
@@ -56,14 +206,15 @@ export default function DetailView({ result, fieldValue, setView }) {
         </div>
         <div className="card-body">
           {samples.length > 0 ? (
-            <div className="table-shell">
-              <table>
+            <div className="worksheet-shell">
+              <table style={{ minWidth: isCompetitive ? 620 : 540 }}>
                 <thead>
                   <tr>
                     <th>Sample</th>
-                    <th>OD 1</th>
-                    <th>OD 2</th>
-                    <th>B/Bmax (%)</th>
+                    <th>OD<sub>1</sub></th>
+                    <th>OD<sub>2</sub></th>
+                    <th>Avg OD</th>
+                    {isCompetitive && <th>B/Bmax (%)</th>}
                     <th>Assay Conc. ({unit})</th>
                     <th>Dilution</th>
                     <th>Sample Conc. ({unit})</th>
@@ -72,14 +223,16 @@ export default function DetailView({ result, fieldValue, setView }) {
                 </thead>
                 <tbody>
                   {samples.map((s, i) => {
-                    const pillClass = s.rangeClass === 'green' ? 'good' : s.rangeClass === 'orange' ? 'bad' : 'warn'
+                    const pillClass   = s.rangeClass === 'green' ? 'good' : s.rangeClass === 'orange' ? 'bad' : 'warn'
                     const statusLabel = s.rangeClass === 'green' ? 'Quantified' : s.rangeClass === 'orange' ? '< LoQ' : '> ULoQ'
+                    const avgOD       = ((Number(s.od1) + Number(s.od2)) / 2)
                     return (
                       <tr key={i}>
                         <td><strong>{s.name}</strong></td>
-                        <td>{Number(s.od1).toFixed(3)}</td>
-                        <td>{Number(s.od2).toFixed(3)}</td>
-                        <td className={s.rangeClass}>{s.bb0?.toFixed(1)}</td>
+                        <td>{fmt(s.od1)}</td>
+                        <td>{fmt(s.od2)}</td>
+                        <td>{fmt(avgOD)}</td>
+                        {isCompetitive && <td className={s.rangeClass}>{s.bb0 != null ? fmt(s.bb0, 1) : '—'}</td>}
                         <td>{s.assayText}</td>
                         <td>{s.dilution}</td>
                         <td><strong>{s.sampleConc}</strong></td>
@@ -97,6 +250,7 @@ export default function DetailView({ result, fieldValue, setView }) {
           )}
         </div>
       </div>
+
     </div>
   )
 }
