@@ -191,7 +191,7 @@ table { width: 100%; border-collapse: collapse; }
 th, td { border: 1px solid var(--line); padding: 9px 10px; font-size: 13px; vertical-align: middle; }
 th { background: #89a4d2; color: #fff; font-weight: 700; }
 td { background: #fff; }
-.results-table th { background: #233447; color: #fff; position: sticky; top: 0; }
+.results-table th { background: #233447; color: #fff; position: sticky; top: 0; z-index: 1; }
 .table-shell { border: 1px solid var(--line); border-radius: 14px; overflow: auto; background: #fff; }
 .results-table td:nth-child(1) { font-weight: 700; }
 .results-table tr.highlight td { background: #eef6ff; }
