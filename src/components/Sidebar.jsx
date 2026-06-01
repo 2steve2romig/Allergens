@@ -1,6 +1,5 @@
 const navItems = [
   { id: 'results-list', label: 'Results' },
-  { id: 'add',          label: 'Add New' },
 ]
 
 export default function Sidebar({ view, setView, startNewWorkflow }) {
