@@ -1,5 +1,5 @@
 const navItems = [
-  { id: 'results-list', label: 'Results' },
+  { id: 'results-list', label: 'AllergenIQ®' },
 ]
 
 export default function Sidebar({ view, setView, startNewWorkflow }) {
