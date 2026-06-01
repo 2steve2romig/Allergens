@@ -21,8 +21,7 @@ export default function Sidebar({ view, setView, startNewWorkflow }) {
         <div className="brand-mark">AllergenIQ</div>
         <div className="brand-sub">AI-driven COA ingestion and allergen quantification</div>
       </div>
-      <div className="brand-name">AllergenIQ®</div>
-      <nav className="nav">
+<nav className="nav">
         {navItems.map(item => (
           <button
             key={item.id}
