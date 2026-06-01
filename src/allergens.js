@@ -10,6 +10,7 @@ export const ALLERGENS = [
     id: 'histamine',
     name: 'Histamine ELISA',
     unit: 'ppm',
+    assayFormat: 'competitive',
     standards: [
       { std: '0', concentration: 0,  meanOD: 1.984, cv: 2.2 },
       { std: '1', concentration: 2,  meanOD: 1.526, cv: 3.1 },
@@ -18,12 +19,18 @@ export const ALLERGENS = [
       { std: '4', concentration: 24, meanOD: 0.521, cv: 3.9 },
       { std: '5', concentration: 72, meanOD: 0.390, cv: 3.6 },
     ],
-    criteria: DEFAULT_CRITERIA,
+    criteria: [
+      'Blank OD adequate (> 0.5)',
+      'Signal inhibition at Std. N (Std. 0 / Std. N > 2.0×)',
+      'OD values decrease with increasing concentration',
+      'Curve fit R² ≥ 0.99',
+    ],
   },
   {
     id: 'almond',
     name: 'Almond ELISA',
     unit: 'ppm',
+    assayFormat: 'sandwich',
     standards: [
       { std: '0', concentration: 0    },
       { std: '1', concentration: 0.5  },
@@ -37,6 +44,7 @@ export const ALLERGENS = [
     id: 'blg',
     name: 'BLG ELISA',
     unit: 'ppb',
+    assayFormat: 'sandwich',
     standards: [
       { std: '0', concentration: 0   },
       { std: '1', concentration: 10  },
@@ -50,6 +58,7 @@ export const ALLERGENS = [
     id: 'casein',
     name: 'Casein ELISA',
     unit: 'ppm',
+    assayFormat: 'sandwich',
     standards: [
       { std: '0', concentration: 0   },
       { std: '1', concentration: 0.2 },
@@ -63,6 +72,7 @@ export const ALLERGENS = [
     id: 'cashew',
     name: 'Cashew ELISA',
     unit: 'ppm',
+    assayFormat: 'sandwich',
     standards: [
       { std: '0', concentration: 0  },
       { std: '1', concentration: 2  },
@@ -76,6 +86,7 @@ export const ALLERGENS = [
     id: 'coconut',
     name: 'Coconut ELISA',
     unit: 'ppm',
+    assayFormat: 'sandwich',
     standards: [
       { std: '0', concentration: 0    },
       { std: '1', concentration: 2    },
@@ -89,6 +100,7 @@ export const ALLERGENS = [
     id: 'crustacean',
     name: 'Crustacean ELISA',
     unit: 'ppb',
+    assayFormat: 'sandwich',
     standards: [
       { std: '0', concentration: 0   },
       { std: '1', concentration: 20  },
@@ -102,12 +114,13 @@ export const ALLERGENS = [
     id: 'egg',
     name: 'Egg ELISA',
     unit: 'ppm',
+    assayFormat: 'sandwich',
     standards: [
-      { std: '0', concentration: 0 },
+      { std: '0', concentration: 0   },
       { std: '1', concentration: 0.4 },
-      { std: '2', concentration: 2 },
-      { std: '3', concentration: 4 },
-      { std: '4', concentration: 8 },
+      { std: '2', concentration: 2   },
+      { std: '3', concentration: 4   },
+      { std: '4', concentration: 8   },
     ],
     criteria: DEFAULT_CRITERIA,
   },
@@ -115,6 +128,7 @@ export const ALLERGENS = [
     id: 'fish',
     name: 'Fish ELISA',
     unit: 'ppm',
+    assayFormat: 'sandwich',
     standards: [
       { std: '0', concentration: 0   },
       { std: '1', concentration: 4   },
@@ -128,6 +142,7 @@ export const ALLERGENS = [
     id: 'hazelnut',
     name: 'Hazelnut ELISA',
     unit: 'ppm',
+    assayFormat: 'sandwich',
     standards: [
       { std: '0', concentration: 0  },
       { std: '1', concentration: 1  },
@@ -141,6 +156,7 @@ export const ALLERGENS = [
     id: 'lupine',
     name: 'Lupine ELISA',
     unit: 'ppm',
+    assayFormat: 'sandwich',
     standards: [
       { std: '0', concentration: 0  },
       { std: '1', concentration: 2  },
@@ -154,6 +170,7 @@ export const ALLERGENS = [
     id: 'lysozyme',
     name: 'Lysozyme ELISA',
     unit: 'ppb',
+    assayFormat: 'sandwich',
     standards: [
       { std: '0', concentration: 0   },
       { std: '1', concentration: 25  },
@@ -167,6 +184,7 @@ export const ALLERGENS = [
     id: 'macadamia',
     name: 'Macadamia ELISA',
     unit: 'ppm',
+    assayFormat: 'sandwich',
     standards: [
       { std: '0', concentration: 0    },
       { std: '1', concentration: 1    },
@@ -180,6 +198,7 @@ export const ALLERGENS = [
     id: 'milk',
     name: 'Milk ELISA',
     unit: 'ppm',
+    assayFormat: 'sandwich',
     standards: [
       { std: '0', concentration: 0   },
       { std: '1', concentration: 0.5 },
@@ -193,6 +212,7 @@ export const ALLERGENS = [
     id: 'mustard',
     name: 'Mustard ELISA',
     unit: 'ppm',
+    assayFormat: 'sandwich',
     standards: [
       { std: '0', concentration: 0  },
       { std: '1', concentration: 2  },
@@ -206,6 +226,7 @@ export const ALLERGENS = [
     id: 'ova',
     name: 'OVA ELISA',
     unit: 'ppb',
+    assayFormat: 'sandwich',
     standards: [
       { std: '0', concentration: 0   },
       { std: '1', concentration: 25  },
@@ -219,6 +240,7 @@ export const ALLERGENS = [
     id: 'peanut',
     name: 'Peanut ELISA',
     unit: 'ppm',
+    assayFormat: 'sandwich',
     standards: [
       { std: '0', concentration: 0  },
       { std: '1', concentration: 1  },
@@ -232,6 +254,7 @@ export const ALLERGENS = [
     id: 'pistachio',
     name: 'Pistachio ELISA',
     unit: 'ppm',
+    assayFormat: 'sandwich',
     standards: [
       { std: '0', concentration: 0    },
       { std: '1', concentration: 1    },
@@ -245,6 +268,7 @@ export const ALLERGENS = [
     id: 'sesame',
     name: 'Sesame ELISA',
     unit: 'ppm',
+    assayFormat: 'sandwich',
     standards: [
       { std: '0', concentration: 0  },
       { std: '1', concentration: 2  },
@@ -258,6 +282,7 @@ export const ALLERGENS = [
     id: 'soy',
     name: 'Soy (STI) ELISA',
     unit: 'ppb',
+    assayFormat: 'sandwich',
     standards: [
       { std: '0', concentration: 0   },
       { std: '1', concentration: 50  },
@@ -271,6 +296,7 @@ export const ALLERGENS = [
     id: 'walnut',
     name: 'Walnut ELISA',
     unit: 'ppm',
+    assayFormat: 'sandwich',
     standards: [
       { std: '0', concentration: 0  },
       { std: '1', concentration: 2  },

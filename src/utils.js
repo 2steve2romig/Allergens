@@ -145,6 +145,52 @@ export function runQC(stdRows, curve) {
   }
 }
 
+export function evaluateCriteria(allergen, stdRows, curve) {
+  if (allergen.assayFormat === 'competitive') {
+    const qc = runQC(stdRows, curve)
+    return allergen.criteria.map((text, i) => {
+      const checks = [qc.blankOD, qc.inhibition, qc.monotonic, qc.curveFit]
+      const check = checks[i]
+      return { text, pass: check?.pass ?? null, computed: check?.value ?? '—' }
+    })
+  }
+
+  const std0OD = stdRows[0]?.avgOD || 0
+  const std1OD = stdRows[1]?.avgOD || 0
+  const lastOD = stdRows[stdRows.length - 1]?.avgOD || 0
+  const hasData = stdRows.some(r => r.avgOD > 0.001)
+
+  if (!hasData) {
+    return allergen.criteria.map(text => ({ text, pass: null, computed: 'Enter OD values in Table 3' }))
+  }
+
+  const match2 = allergen.criteria[1]?.match(/>\s*([\d.]+)/)
+  const threshold2 = match2 ? parseFloat(match2[1]) : 1.9
+
+  return [
+    {
+      text: allergen.criteria[0],
+      pass: std0OD > 0 && std0OD < 0.250,
+      computed: `OD Std.0 = ${std0OD.toFixed(3)}`,
+    },
+    {
+      text: allergen.criteria[1],
+      pass: std0OD > 0 ? (std1OD / std0OD) > threshold2 : false,
+      computed: `Std.1/Std.0 = ${std0OD > 0 ? (std1OD / std0OD).toFixed(2) : '—'}`,
+    },
+    {
+      text: allergen.criteria[2],
+      pass: lastOD > 1.0,
+      computed: `OD Std.4 = ${lastOD.toFixed(3)}`,
+    },
+    {
+      text: allergen.criteria[3],
+      pass: std1OD > 0 ? (lastOD / std1OD) > 3 : false,
+      computed: `Std.4/Std.1 = ${std1OD > 0 ? (lastOD / std1OD).toFixed(2) : '—'}`,
+    },
+  ]
+}
+
 export function getNiceTicks(max, count = 4) {
   if (max <= 0) return []
   const rawStep = max / count

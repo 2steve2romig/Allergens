@@ -150,8 +150,11 @@ function ProcessingStage({ ingestProgress, filename }) {
   )
 }
 
+const DEMO_FILENAME = 'COA-KIT3065-LOT307626.pdf'
+
 function SuccessStage({ coaFields, filename, onReview }) {
-  const confMap = Object.fromEntries(CONFIDENCE.map(c => [c.key, c.conf]))
+  const confMap    = Object.fromEntries(CONFIDENCE.map(c => [c.key, c.conf]))
+  const isDemoCOA  = filename === DEMO_FILENAME
 
   const extracted = [
     ...coaFields.map(f => ({
@@ -172,10 +175,28 @@ function SuccessStage({ coaFields, filename, onReview }) {
         <span className="pill good">Extraction successful</span>
       </div>
       <div className="card-body stack">
+
+        {!isDemoCOA && (
+          <div style={{
+            background: '#fff8e6', border: '1px solid #f0c040', borderRadius: 12,
+            padding: '12px 16px', display: 'flex', gap: 12, alignItems: 'flex-start',
+          }}>
+            <span style={{ fontSize: 18, lineHeight: 1 }}>⚠</span>
+            <div>
+              <div style={{ fontWeight: 700, fontSize: 14 }}>Demo mode — file not recognized</div>
+              <div className="small muted" style={{ marginTop: 4 }}>
+                <strong>{filename}</strong> was not matched to a known COA in this demo.
+                Showing sample extraction output from <strong>{DEMO_FILENAME}</strong>.
+                In a production deployment, AI extraction would read your uploaded document directly.
+              </div>
+            </div>
+          </div>
+        )}
+
         <div className="success-banner">
           <div className="success-icon">✓</div>
           <div>
-            <div style={{ fontWeight: 700 }}>{filename}</div>
+            <div style={{ fontWeight: 700 }}>{isDemoCOA ? filename : DEMO_FILENAME}</div>
             <div className="small muted" style={{ marginTop: 4 }}>
               {extracted.length} fields extracted and linked to validation rules. Review before importing.
             </div>

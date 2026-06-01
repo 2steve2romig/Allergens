@@ -1,5 +1,5 @@
 import { ALLERGENS, getAllergen } from '../allergens.js'
-import { calcStdRows, calcSampleRows, fitCurve, runQC } from '../utils.js'
+import { calcStdRows, calcSampleRows, fitCurve, runQC, evaluateCriteria } from '../utils.js'
 import ChartSvg from '../components/ChartSvg.jsx'
 
 function fmt(n, d = 3) {
@@ -7,13 +7,30 @@ function fmt(n, d = 3) {
 }
 
 function QCPill({ check }) {
-  const cls = check.pass ? 'good' : 'bad'
+  const cls = check.pass === null ? 'soft' : check.pass ? 'good' : 'bad'
   return (
     <div className="meta" style={{ padding: '10px 14px' }}>
       <div className="k">{check.label}</div>
       <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginTop: 6 }}>
-        <span style={{ fontWeight: 700 }}>{check.value}</span>
-        <span className={`pill ${cls}`} style={{ fontSize: 11 }}>{check.pass ? '✓ Pass' : '✗ Fail'}</span>
+        <span style={{ fontWeight: 700, fontSize: 13 }}>{check.value}</span>
+        <span className={`pill ${cls}`} style={{ fontSize: 11 }}>
+          {check.pass === null ? '—' : check.pass ? '✓ Pass' : '✗ Fail'}
+        </span>
+      </div>
+    </div>
+  )
+}
+
+function CriteriaRow({ cr }) {
+  const cls = cr.pass === null ? 'soft' : cr.pass ? 'good' : 'bad'
+  return (
+    <div className="meta" style={{ padding: '10px 14px' }}>
+      <div className="k" style={{ textTransform: 'none', fontSize: 13, letterSpacing: 0 }}>{cr.text}</div>
+      <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginTop: 6 }}>
+        <span style={{ fontSize: 12, color: 'var(--muted)' }}>{cr.computed}</span>
+        <span className={`pill ${cls}`} style={{ fontSize: 11 }}>
+          {cr.pass === null ? 'No data' : cr.pass ? '✓ Pass' : '✗ Fail'}
+        </span>
       </div>
     </div>
   )
@@ -25,11 +42,22 @@ export default function Step2View({ coaFields, quant, setQuant, fieldValue, save
   const curve      = fitCurve(stdRows)
   const sampleRows = calcSampleRows(quant, allergen, curve, stdRows)
   const qc         = runQC(stdRows, curve)
+  const criteria   = evaluateCriteria(allergen, stdRows, curve)
   const goodCount  = sampleRows.filter(s => s.rangeClass === 'green').length
   const hasCOA     = allergen.standards.some(s => s.meanOD != null)
+  const isCompetitive = allergen.assayFormat === 'competitive'
   const { unit }   = allergen
 
   const r2Class = curve.r2 >= 0.999 ? 'good' : curve.r2 >= 0.99 ? 'warn' : 'bad'
+
+  const changeAllergen = (newId) => {
+    const newAllergen = getAllergen(newId)
+    setQuant(q => ({
+      ...q,
+      allergenId: newId,
+      standardCurve: newAllergen.standards.map(() => ({ od1: '', od2: '' })),
+    }))
+  }
 
   const setStdOD = (idx, field, value) => {
     setQuant(q => ({
@@ -72,6 +100,9 @@ export default function Step2View({ coaFields, quant, setQuant, fieldValue, save
       <div className="card">
         <div className="card-header">
           <div className="section-title">Table 1 — Assay Data</div>
+          <span className={`pill ${isCompetitive ? 'soft' : 'soft'}`}>
+            {isCompetitive ? 'Competitive inhibition ELISA' : 'Sandwich ELISA'}
+          </span>
         </div>
         <div className="card-body">
           <div className="grid grid-3" style={{ gap: 14 }}>
@@ -79,7 +110,7 @@ export default function Step2View({ coaFields, quant, setQuant, fieldValue, save
               <label>Allergen</label>
               <select
                 value={quant.allergenId || 'histamine'}
-                onChange={e => setQuant(q => ({ ...q, allergenId: e.target.value }))}
+                onChange={e => changeAllergen(e.target.value)}
               >
                 {ALLERGENS.map(a => <option key={a.id} value={a.id}>{a.name}</option>)}
               </select>
@@ -108,7 +139,9 @@ export default function Step2View({ coaFields, quant, setQuant, fieldValue, save
         <div className="card-header">
           <div>
             <div className="section-title">Table 2 — COA Reference Data</div>
-            <div className="small muted" style={{ marginTop: 4 }}>Standard concentrations and reference OD values from the imported Certificate of Analysis.</div>
+            <div className="small muted" style={{ marginTop: 4 }}>
+              Standard concentrations and reference OD values from the imported Certificate of Analysis.
+            </div>
           </div>
           {!hasCOA && (
             <span className="pill warn">Import this allergen's COA to see reference OD values</span>
@@ -152,14 +185,22 @@ export default function Step2View({ coaFields, quant, setQuant, fieldValue, save
             </table>
           </div>
 
+          {/* Criteria section — evaluated */}
           <div>
-            <div className="small muted" style={{ marginBottom: 8 }}>Acceptance Criteria</div>
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 8 }}>
+              <div className="small muted">
+                {isCompetitive
+                  ? 'Acceptance Criteria — Competitive inhibition ELISA (evaluated from Table 3 plate readings)'
+                  : 'Acceptance Criteria — Sandwich ELISA (evaluated from Table 3 plate readings)'}
+              </div>
+              {criteria && (
+                <span className={`pill ${criteria.every(c => c.pass) ? 'good' : criteria.some(c => c.pass === false) ? 'bad' : 'soft'}`}>
+                  {criteria.filter(c => c.pass).length} / {criteria.length} pass
+                </span>
+              )}
+            </div>
             <div className="grid grid-2" style={{ gap: 8 }}>
-              {allergen.criteria.map((c, i) => (
-                <div key={i} className="meta" style={{ padding: '8px 12px' }}>
-                  <div className="v" style={{ marginTop: 0, fontWeight: 500, fontSize: 13 }}>{c}</div>
-                </div>
-              ))}
+              {criteria?.map((cr, i) => <CriteriaRow key={i} cr={cr} />)}
             </div>
           </div>
         </div>
@@ -170,7 +211,10 @@ export default function Step2View({ coaFields, quant, setQuant, fieldValue, save
         <div className="card-header">
           <div>
             <div className="section-title">Table 3 — Standard Curve</div>
-            <div className="small muted" style={{ marginTop: 4 }}>Enter OD readings from your plate reader for each calibration standard.</div>
+            <div className="small muted" style={{ marginTop: 4 }}>
+              Enter OD readings from your plate reader.
+              {isCompetitive ? ' OD should decrease with increasing concentration.' : ' OD should increase with increasing concentration.'}
+            </div>
           </div>
           <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap', alignItems: 'center' }}>
             <span className="pill soft">a = {fmt(curve.a, 6)}</span>
@@ -181,7 +225,7 @@ export default function Step2View({ coaFields, quant, setQuant, fieldValue, save
         </div>
         <div className="card-body stack">
           <div className="worksheet-shell">
-            <table style={{ minWidth: 640 }}>
+            <table style={{ minWidth: hasCOA ? 700 : 560 }}>
               <thead>
                 <tr>
                   <th>Std.</th>
@@ -197,10 +241,8 @@ export default function Step2View({ coaFields, quant, setQuant, fieldValue, save
               </thead>
               <tbody>
                 {stdRows.map((std, idx) => {
-                  const fitted = idx === 0
-                    ? 0
-                    : Math.max(0, curve.a * std.bb0 ** 2 + curve.b * std.bb0 + curve.c)
-                  const deltaOD = std.meanOD != null ? std.avgOD - std.meanOD : null
+                  const fitted    = idx === 0 ? 0 : Math.max(0, curve.a * std.bb0 ** 2 + curve.b * std.bb0 + curve.c)
+                  const deltaOD   = std.meanOD != null ? std.avgOD - std.meanOD : null
                   const deltaClass = deltaOD != null && Math.abs(deltaOD) > 0.05 ? 'orange' : ''
                   return (
                     <tr key={idx}>
@@ -303,7 +345,9 @@ export default function Step2View({ coaFields, quant, setQuant, fieldValue, save
         <div className="card-header">
           <div>
             <div className="section-title">Table 5 — ELISA Results</div>
-            <div className="small muted" style={{ marginTop: 4 }}>Concentrations calculated by quadratic polynomial regression (Y = aX² + bX + c).</div>
+            <div className="small muted" style={{ marginTop: 4 }}>
+              Concentrations calculated by quadratic polynomial regression (Y = aX² + bX + c).
+            </div>
           </div>
           <span className="pill soft">{goodCount} / {sampleRows.length} quantifiable</span>
         </div>
