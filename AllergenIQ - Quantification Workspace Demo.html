@@ -1,0 +1,1013 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>AllergenIQ - Quantification Workspace Demo</title>
+  <style>
+    :root{
+      --bg:#e9edf2;
+      --panel:#f7f9fb;
+      --panel-2:#ffffff;
+      --line:#cfd8e3;
+      --line-2:#b9c7d9;
+      --text:#23364d;
+      --muted:#6f8094;
+      --blue:#5b97d0;
+      --blue-dark:#4b83b8;
+      --blue-soft:#dbe8f7;
+      --nav:#5a9bd4;
+      --nav-dark:#4a8bc4;
+      --header:#243447;
+      --good:#2f7d32;
+      --good-bg:#e8f5e9;
+      --warn:#a56b00;
+      --warn-bg:#fff4db;
+      --bad:#b42318;
+      --bad-bg:#fdecec;
+      --shadow:0 1px 2px rgba(17,24,39,.05), 0 10px 28px rgba(17,24,39,.08);
+      --radius:16px;
+    }
+    *{box-sizing:border-box}
+    body{margin:0;font-family:Inter,Segoe UI,Arial,sans-serif;background:var(--bg);color:var(--text)}
+    .app{display:grid;grid-template-columns:242px 1fr;min-height:100vh}
+    .sidebar{background:linear-gradient(180deg,var(--nav),var(--nav-dark));color:#fff;padding:22px 0;display:flex;flex-direction:column;gap:18px}
+    .brand{padding:0 18px 8px}
+    .brand-mark{height:82px;border:2px solid rgba(255,255,255,.55);border-radius:48px;display:flex;align-items:center;justify-content:center;font-size:17px;font-weight:700;background:rgba(255,255,255,.08)}
+    .brand-sub{margin-top:12px;background:rgba(255,255,255,.12);padding:10px 12px;border-radius:10px;font-size:12px}
+    .brand-name{background:rgba(89,122,190,.45);padding:10px 14px;font-size:22px;font-weight:700;letter-spacing:.2px}
+    .nav{display:flex;flex-direction:column;gap:6px;padding:0 0 0 0}
+    .nav button{margin:0 0 0 0;border:none;background:transparent;color:rgba(255,255,255,.95);padding:14px 28px;text-align:left;font:inherit;font-size:15px;cursor:pointer;display:flex;align-items:center;gap:12px}
+    .nav button.active,.nav button:hover{background:rgba(255,255,255,.22)}
+    .nav-spacer{flex:1}
+    .subnav{padding:0 18px;display:flex;flex-direction:column;gap:8px}
+    .subnav button{border:none;background:transparent;color:#fff;text-align:left;padding:10px 8px;border-radius:10px;font:inherit;cursor:pointer}
+    .subnav button:hover{background:rgba(255,255,255,.14)}
+
+    .main{padding:18px}
+    .topbar{background:#dde4eb;border:1px solid #d1dae5;border-radius:18px;padding:16px 20px;display:flex;justify-content:space-between;align-items:center;gap:14px;box-shadow:var(--shadow)}
+    .headline{font-size:23px;font-weight:700;color:#5b7fb2}
+    .subtitle{font-size:14px;color:var(--muted);margin-top:2px}
+    .top-actions{display:flex;gap:10px;flex-wrap:wrap}
+    .btn{border:1px solid var(--line-2);background:#fff;color:var(--text);padding:10px 14px;border-radius:10px;cursor:pointer;font:inherit}
+    .btn.primary{background:var(--blue);border-color:var(--blue);color:#fff}
+    .btn.dark{background:#223345;border-color:#223345;color:#fff}
+    .btn.ghost{background:#edf3fa}
+    .btn:disabled{opacity:.55;cursor:not-allowed}
+    .page{margin-top:16px;background:rgba(255,255,255,.48);border:1px solid #d7e0ea;border-radius:18px;padding:14px;min-height:calc(100vh - 120px)}
+    .hidden{display:none !important}
+
+    .card{background:var(--panel-2);border:1px solid var(--line);border-radius:16px;box-shadow:var(--shadow)}
+    .card-header{padding:16px 18px;border-bottom:1px solid var(--line);display:flex;justify-content:space-between;align-items:center;gap:12px}
+    .card-body{padding:16px 18px}
+    .stack{display:flex;flex-direction:column;gap:16px}
+    .row{display:flex;justify-content:space-between;align-items:center;gap:12px}
+    .grid{display:grid;gap:16px}
+    .grid-2{grid-template-columns:1.25fr .9fr}
+    .grid-3{grid-template-columns:repeat(3,1fr)}
+    .grid-4{grid-template-columns:repeat(4,1fr)}
+    .meta{background:#f5f8fc;border:1px solid var(--line);border-radius:12px;padding:12px}
+    .meta .k{font-size:12px;color:var(--muted);text-transform:uppercase;letter-spacing:.04em}
+    .meta .v{font-weight:700;margin-top:6px}
+    .pill{display:inline-flex;align-items:center;padding:4px 10px;border-radius:999px;font-size:12px;border:1px solid var(--line);background:#fff}
+    .pill.good{background:var(--good-bg);color:var(--good);border-color:#bfe0c3}
+    .pill.warn{background:var(--warn-bg);color:var(--warn);border-color:#eed08f}
+    .pill.bad{background:var(--bad-bg);color:var(--bad);border-color:#efb3b0}
+    .pill.soft{background:#edf4fc;color:#456a96;border-color:#d7e3f0}
+
+    table{width:100%;border-collapse:collapse}
+    th,td{border:1px solid var(--line);padding:9px 10px;font-size:13px;vertical-align:middle}
+    th{background:#89a4d2;color:#fff;font-weight:700}
+    td{background:#fff}
+    .results-table th{background:#233447;color:#fff;position:sticky;top:0}
+    .table-shell{border:1px solid var(--line);border-radius:14px;overflow:auto;background:#fff}
+    .results-table td:nth-child(1){font-weight:700}
+    .results-table tr.highlight td{background:#eef6ff}
+    .results-table tr:hover td{background:#f8fbff}
+    .small{font-size:13px}
+    .muted{color:var(--muted)}
+    .section-title{font-size:18px;font-weight:700}
+    .field{display:flex;flex-direction:column;gap:6px}
+    .field label{font-size:12px;color:var(--muted);font-weight:700;text-transform:uppercase;letter-spacing:.04em}
+    input[type="text"], input[type="date"], select, textarea{width:100%;border:1px solid var(--line-2);border-radius:10px;padding:10px 12px;font:inherit;background:#fff;color:var(--text)}
+    textarea{min-height:88px;resize:vertical}
+    .uploader{border:2px dashed #b7cbe2;background:#f6faff;border-radius:16px;padding:20px;text-align:center}
+    .uploader.compact{padding:16px 18px;text-align:left}
+    .dropzone-actions{display:flex;justify-content:center;gap:10px;flex-wrap:wrap;margin-top:14px}
+    .seq-shell{max-width:1180px}
+    .progress-wrap{display:flex;align-items:center;gap:14px}
+    .progress-track{flex:1;height:12px;background:#e8eef6;border-radius:999px;overflow:hidden;border:1px solid #d7e1ee}
+    .progress-fill{height:100%;background:linear-gradient(90deg,#7ea8d7,#4f86bf);transition:width .35s ease}
+    .status-list{display:grid;gap:10px}
+    .status-item{display:flex;align-items:center;justify-content:space-between;gap:12px;padding:12px 14px;border:1px solid var(--line);border-radius:12px;background:#fbfdff}
+    .status-item.done{background:#eef8ef;border-color:#cde3cf}
+    .status-item.active{background:#edf4fc;border-color:#c8daef}
+    .success-banner{display:flex;align-items:flex-start;gap:14px;padding:16px;border:1px solid #cde3cf;background:#eef8ef;border-radius:14px}
+    .success-icon{width:40px;height:40px;border-radius:50%;display:flex;align-items:center;justify-content:center;background:#d7f0db;color:var(--good);font-weight:700;font-size:20px}
+    .workflow{display:flex;align-items:center;gap:10px;flex-wrap:wrap}
+    .workflow .step{display:flex;align-items:center;gap:10px;background:#fff;border:1px solid var(--line);padding:10px 12px;border-radius:12px}
+    .workflow .dot{width:28px;height:28px;border-radius:50%;display:flex;align-items:center;justify-content:center;background:#dde8f7;font-weight:700;color:#36557a}
+    .workflow .step.active{border-color:#8faed5;background:#edf4fc}
+    .workflow .step.done{border-color:#bfe0c3;background:#eef8ef}
+    .workflow .arrow{color:#9aa9bb;font-weight:700}
+
+    .editable td[contenteditable="true"]{background:#fcfdff}
+    .editable td[contenteditable="true"]:focus{outline:2px solid #8fb2dc;outline-offset:-2px;background:#eef6ff}
+    .rule-pass{color:var(--good);font-weight:700}
+    .rule-fail{color:var(--bad);font-weight:700}
+    .worksheet-shell{background:#fff;border:1px solid var(--line);border-radius:16px;overflow:auto}
+    .worksheet-shell table{min-width:1180px}
+    .worksheet-shell .band-dark{background:#223345;color:#fff;text-align:center;font-size:14px}
+    .worksheet-shell .band-blue{background:#89a4d2;color:#fff}
+    .worksheet-shell .subcol{background:#dbe6f7;color:#23364d;font-weight:700}
+    .worksheet-shell td.blue-col{background:#edf3fc}
+    .worksheet-shell td.green{background:#e8f5e9}
+    .worksheet-shell td.yellow{background:#fff4db}
+    .worksheet-shell td.orange{background:#ffe7cf}
+    .worksheet-shell td.gray{background:#f3f5f7}
+    .chart{height:230px;border:1px solid var(--line);border-radius:14px;background:linear-gradient(180deg,#fcfdff,#f5f8fc);padding:12px;position:relative}
+    .chart svg{width:100%;height:100%}
+    .result-summary{display:grid;grid-template-columns:repeat(4,1fr);gap:14px}
+    .detail-grid{display:grid;grid-template-columns:1fr 1fr;gap:16px}
+    .footer-actions{display:flex;justify-content:space-between;align-items:center;gap:12px;flex-wrap:wrap}
+
+    @media (max-width: 1200px){
+      .app{grid-template-columns:1fr}
+      .sidebar{display:none}
+      .grid-2,.grid-3,.grid-4,.detail-grid,.result-summary{grid-template-columns:1fr}
+      .topbar{flex-direction:column;align-items:flex-start}
+    }
+  </style>
+</head>
+<body>
+<div class="app">
+  <aside class="sidebar">
+    <div class="brand">
+      <div class="brand-mark">AllergenIQ</div>
+      <div class="brand-sub">AI-driven COA ingestion and allergen quantification</div>
+    </div>
+    <div class="brand-name">AllergenIQ®</div>
+    <nav class="nav" id="nav"></nav>
+    <div class="nav-spacer"></div>
+    <div class="subnav">
+      <button type="button">⚙ Settings</button>
+      <button type="button">❔ Help</button>
+    </div>
+  </aside>
+
+  <main class="main">
+    <div class="topbar">
+      <div>
+        <div class="headline" id="pageTitle">AllergenIQ Results Workspace</div>
+        <div class="subtitle" id="pageSubtitle">Review historical allergen quantification runs and create a new quantification from a COA.</div>
+      </div>
+      <div class="top-actions" id="topActions"></div>
+    </div>
+
+    <div class="page">
+      <section id="view-results" class="stack"></section>
+      <section id="view-step1" class="stack hidden"></section>
+      <section id="view-step2" class="stack hidden"></section>
+      <section id="view-detail" class="stack hidden"></section>
+      <section id="view-settings" class="stack hidden"></section>
+      <section id="view-help" class="stack hidden"></section>
+    </div>
+  </main>
+</div>
+
+<script>
+const coaDefaults = {
+  product: 'AlerTox ELISA Histamine (96 tests)',
+  catalogNo: 'KIT3065',
+  lot: '307626',
+  expiryDate: '2027-01-14',
+  plateLot: 'HI3-144',
+  coaDate: '2026-02-13',
+  curveGeometry: '4 Point method',
+  acceptance0: '0 ppm standard must be < 1 ppm',
+  acceptance6: '6 ppm standard must be between 4.2 and 7.8 ppm',
+  acceptance24: '24 ppm standard must be between 16.8 and 31.2 ppm',
+  standards: [
+    { std: '0', concentration: 0, meanOD: 1.984, cv: 2.2, bb0: 100.0 },
+    { std: '1', concentration: 2, meanOD: 1.526, cv: 3.1, bb0: 76.9 },
+    { std: '2', concentration: 6, meanOD: 1.007, cv: 5.4, bb0: 50.8 },
+    { std: '3', concentration: 12, meanOD: 0.761, cv: 7.0, bb0: 38.4 },
+    { std: '4', concentration: 24, meanOD: 0.521, cv: 3.9, bb0: 26.3 },
+    { std: '5', concentration: 72, meanOD: 0.390, cv: 3.6, bb0: 19.7 }
+  ]
+};
+
+const state = {
+  view: 'results',
+  highlightedResultId: null,
+  activeWorkflowStep: 0,
+  validationRun: false,
+  imported: false,
+  step1Stage: 'upload',
+  ingestProgress: 0,
+  selectedResultId: 'AQ-24018',
+  coaFields: [
+    { key: 'product', label: 'Product', value: coaDefaults.product, required: true, type: 'text' },
+    { key: 'catalogNo', label: 'Catalog Number', value: coaDefaults.catalogNo, required: true, type: 'text' },
+    { key: 'lot', label: 'Lot', value: coaDefaults.lot, required: true, type: 'text' },
+    { key: 'expiryDate', label: 'Expiry Date', value: coaDefaults.expiryDate, required: true, type: 'date' },
+    { key: 'plateLot', label: 'Plate Lot', value: coaDefaults.plateLot, required: true, type: 'text' },
+    { key: 'coaDate', label: 'COA Date', value: coaDefaults.coaDate, required: true, type: 'date' },
+    { key: 'curveGeometry', label: 'Curve Geometry', value: coaDefaults.curveGeometry, required: true, type: 'text' },
+    { key: 'acceptance0', label: 'Acceptance Rule: Std 0', value: coaDefaults.acceptance0, required: true, type: 'text' },
+    { key: 'acceptance6', label: 'Acceptance Rule: Std 6', value: coaDefaults.acceptance6, required: true, type: 'text' },
+    { key: 'acceptance24', label: 'Acceptance Rule: Std 24', value: coaDefaults.acceptance24, required: true, type: 'text' }
+  ],
+  quant: {
+    operator: 'Steve Romig',
+    assayDate: '2026-04-09',
+    assayDescription: 'Histamine ELISA verification for sauce base release sample set',
+    standardCurve: [1.986, 1.522, 1.013, 0.759, 0.518],
+    samples: [
+      { name: 'Sample A', od1: 0.884, od2: 0.879, dilution: 1 },
+      { name: 'Sample B', od1: 0.454, od2: 0.448, dilution: 5 },
+      { name: 'Sample C', od1: 1.712, od2: 1.701, dilution: 1 },
+      { name: 'Sample D', od1: 0.214, od2: 0.209, dilution: 1 }
+    ]
+  },
+  results: [
+    { id: 'AQ-24018', date: '2026-04-08', assay: 'Histamine ELISA', lot: '307612', operator: 'M. Chen', sampleCount: 8, quantifiable: '6 / 8', flags: '2 outside RoQ', status: 'Completed', product: 'AlerTox ELISA Histamine', kit: 'KIT3065', notes: 'One sample above ULoQ, one below LoQ.', resultSamples: [] },
+    { id: 'AQ-24017', date: '2026-04-05', assay: 'Histamine ELISA', lot: '307598', operator: 'A. Patel', sampleCount: 5, quantifiable: '5 / 5', flags: 'None', status: 'Completed', product: 'AlerTox ELISA Histamine', kit: 'KIT3065', notes: 'All samples within quantification range.', resultSamples: [] },
+    { id: 'AQ-24016', date: '2026-04-02', assay: 'Milk Residue ELISA', lot: '221144', operator: 'R. Ortiz', sampleCount: 7, quantifiable: '7 / 7', flags: 'None', status: 'Completed', product: 'AlerTox ELISA Milk', kit: 'KIT3122', notes: 'Routine verification run completed.', resultSamples: [] }
+  ]
+};
+
+const views = ['results','step1','step2','detail','settings','help'];
+const navItems = [
+  { id:'results', label:'Home' },
+  { id:'results-list', label:'Results' },
+  { id:'add', label:'Add New' },
+  { id:'settings', label:'Settings' },
+  { id:'help', label:'Help' }
+];
+
+function getField(key){ return state.coaFields.find(f => f.key === key); }
+function fieldValue(key){ return getField(key)?.value || ''; }
+function formatDate(iso){ if(!iso) return ''; const d = new Date(iso+'T00:00:00'); return d.toLocaleDateString('en-US', { month:'short', day:'numeric', year:'numeric' }); }
+function statusPill(status){
+  const cls = status === 'Completed' ? 'good' : status === 'Draft' ? 'warn' : 'soft';
+  return `<span class="pill ${cls}">${status}</span>`;
+}
+function ruleCheck(field){
+  const v = String(field.value || '').trim();
+  if(field.required && !v) return { ok:false, msg:'Required value missing' };
+  if(field.key === 'catalogNo' && !/^KIT\d{4}$/i.test(v)) return { ok:false, msg:'Expected KIT#### format' };
+  if(field.key === 'lot' && !/^\d{6}$/.test(v)) return { ok:false, msg:'Expected 6-digit lot' };
+  if((field.key === 'expiryDate' || field.key === 'coaDate') && !/^\d{4}-\d{2}-\d{2}$/.test(v)) return { ok:false, msg:'Expected YYYY-MM-DD date' };
+  return { ok:true, msg:'Valid' };
+}
+function validationSummary(){
+  const checks = state.coaFields.map(ruleCheck);
+  return {
+    valid: checks.filter(c => c.ok).length,
+    invalid: checks.filter(c => !c.ok).length,
+    total: checks.length,
+    complete: checks.every(c => c.ok)
+  };
+}
+function getBlankOD(){ return state.quant.standardCurve[0] || 0; }
+function calcStdRows(){
+  const blank = getBlankOD();
+  return coaDefaults.standards.slice(0,5).map((std, index) => {
+    const od = Number(state.quant.standardCurve[index] || 0);
+    const bb0 = blank ? (od / blank) * 100 : 0;
+    const delta = Math.abs(od - std.meanOD);
+    const pass = delta <= 0.04;
+    return { ...std, enteredOD: od, enteredBB0: bb0, pass };
+  });
+}
+function interpolatePpm(bb0){
+  if (bb0 >= 76.9) return 2;
+  if (bb0 >= 50.8) return 6;
+  if (bb0 >= 38.4) return 12;
+  if (bb0 >= 26.3) return 24;
+  if (bb0 >= 19.7) return 72;
+  return 90;
+}
+function sampleRows(){
+  const blank = getBlankOD();
+  return state.quant.samples.map(s => {
+    const meanOD = (Number(s.od1) + Number(s.od2)) / 2;
+    const bb0 = blank ? (meanOD / blank) * 100 : 0;
+    const assayConc = interpolatePpm(bb0);
+    let rangeClass = 'green';
+    let assayText = assayConc.toFixed(1);
+    if (bb0 > 95) { rangeClass = 'orange'; assayText = '< LoQ'; }
+    else if (bb0 < 19.7) { rangeClass = 'yellow'; assayText = '> ULoQ'; }
+    const sampleConc = assayText.includes('LoQ') ? assayText : (assayConc * Number(s.dilution || 1)).toFixed(1);
+    return { ...s, meanOD, bb0, assayText, sampleConc, rangeClass };
+  });
+}
+function currentResult(){ return state.results.find(r => r.id === state.selectedResultId) || state.results[0]; }
+
+function renderNav(){
+  document.getElementById('nav').innerHTML = navItems.map(item => {
+    let active = false;
+    if(item.id === 'results' || item.id === 'results-list') active = state.view === 'results' || state.view === 'detail';
+    else if(item.id === 'add') active = state.view === 'step1' || state.view === 'step2';
+    else active = state.view === item.id;
+    return `<button data-nav="${item.id}" class="${active ? 'active' : ''}">${item.label}</button>`;
+  }).join('');
+  document.querySelectorAll('[data-nav]').forEach(btn => {
+    btn.onclick = () => {
+      const id = btn.dataset.nav;
+      if(id === 'add') startNewWorkflow();
+      else if(id === 'results' || id === 'results-list') setView('results');
+      else setView(id);
+    };
+  });
+}
+
+function setView(view){
+  state.view = view;
+  views.forEach(v => document.getElementById('view-' + v).classList.toggle('hidden', v !== view));
+  renderHeader();
+  renderNav();
+  renderCurrent();
+}
+
+function renderHeader(){
+  const title = document.getElementById('pageTitle');
+  const sub = document.getElementById('pageSubtitle');
+  const actions = document.getElementById('topActions');
+  const map = {
+    results: ['AllergenIQ Results Workspace','Review historical allergen quantification runs and create a new quantification from a COA.'],
+    step1: ['Step 1 of 2 — Upload COA','Import a Certificate of Analysis, review extracted values, validate each field, and import into quantification.'],
+    step2: ['Step 2 of 2 — Quantification','Run the worksheet-style quantification flow using imported COA values and sample absorbance data.'],
+    detail: ['Quantification Result Detail','Review the saved quantification, assay inputs, and calculated sample concentrations.'],
+    settings: ['AllergenIQ Settings','Manage validation, thresholds, templates, and system preferences.'],
+    help: ['AllergenIQ Help','View the guided workflow and demo usage notes.']
+  };
+  title.textContent = map[state.view][0];
+  sub.textContent = map[state.view][1];
+
+  if(state.view === 'results'){
+    actions.innerHTML = `<button class="btn ghost" id="demoBtn">Run Guided Demo</button><button class="btn primary" id="addBtn">Add New</button>`;
+    document.getElementById('addBtn').onclick = startNewWorkflow;
+    document.getElementById('demoBtn').onclick = runGuidedDemo;
+  } else if(state.view === 'step1') {
+    const labelMap = { upload:'Awaiting upload', processing:'AI processing', success:'Extraction complete', review: (validationSummary().complete && state.validationRun ? 'Validated' : 'Awaiting validation') };
+    const clsMap = { upload:'warn', processing:'soft', success:'good', review:(validationSummary().complete && state.validationRun ? 'good' : 'warn') };
+    actions.innerHTML = `<span class="pill ${clsMap[state.step1Stage]}">${labelMap[state.step1Stage]}</span><button class="btn" id="backToResults">Cancel</button>`;
+    document.getElementById('backToResults').onclick = () => setView('results');
+  } else if(state.view === 'step2') {
+    actions.innerHTML = `<span class="pill soft">Imported from COA</span><button class="btn" id="backToStep1">Back to Step 1</button>`;
+    document.getElementById('backToStep1').onclick = () => setView('step1');
+  } else if(state.view === 'detail') {
+    actions.innerHTML = `<button class="btn" id="backToResults2">Back to Results</button>`;
+    document.getElementById('backToResults2').onclick = () => setView('results');
+  } else {
+    actions.innerHTML = `<button class="btn" id="homeBtn">Results</button>`;
+    document.getElementById('homeBtn').onclick = () => setView('results');
+  }
+}
+
+function renderCurrent(){
+  renderResults();
+  renderStep1();
+  renderStep2();
+  renderDetail();
+  renderSettings();
+  renderHelp();
+}
+
+function renderResults(){
+  const view = document.getElementById('view-results');
+  view.innerHTML = `
+    <div class="grid grid-4">
+      <div class="meta"><div class="k">Historical Results</div><div class="v">${state.results.length}</div></div>
+      <div class="meta"><div class="k">Completed This Month</div><div class="v">${state.results.filter(r => r.status === 'Completed').length}</div></div>
+      <div class="meta"><div class="k">Current Assay</div><div class="v">Histamine ELISA</div></div>
+      <div class="meta"><div class="k">Latest Lot</div><div class="v">${fieldValue('lot')}</div></div>
+    </div>
+
+    <div class="card">
+      <div class="card-header">
+        <div>
+          <div class="section-title">Historical Allergen Quantification Results</div>
+          <div class="small muted">Main landing page for AllergenIQ. Select an existing result or add a new quantification run.</div>
+        </div>
+        <div class="workflow">
+          <div class="step done"><div class="dot">1</div><div>Upload COA</div></div>
+          <div class="arrow">→</div>
+          <div class="step done"><div class="dot">2</div><div>Quantification</div></div>
+          <div class="arrow">→</div>
+          <div class="step active"><div class="dot">3</div><div>Result Saved</div></div>
+        </div>
+      </div>
+      <div class="card-body">
+        <div class="table-shell">
+          <table class="results-table">
+            <thead>
+              <tr>
+                <th>Result ID</th>
+                <th>Date</th>
+                <th>Assay</th>
+                <th>Lot</th>
+                <th>Operator</th>
+                <th>Sample Count</th>
+                <th>Quantifiable</th>
+                <th>Flags</th>
+                <th>Status</th>
+                <th>Action</th>
+              </tr>
+            </thead>
+            <tbody>
+              ${state.results.map(r => `
+                <tr class="${state.highlightedResultId === r.id ? 'highlight' : ''}">
+                  <td>${r.id}</td>
+                  <td>${formatDate(r.date)}</td>
+                  <td>${r.assay}</td>
+                  <td>${r.lot}</td>
+                  <td>${r.operator}</td>
+                  <td>${r.sampleCount}</td>
+                  <td>${r.quantifiable}</td>
+                  <td>${r.flags}</td>
+                  <td>${statusPill(r.status)}</td>
+                  <td><button class="btn" data-view-result="${r.id}">View Result</button></td>
+                </tr>
+              `).join('')}
+            </tbody>
+          </table>
+        </div>
+      </div>
+    </div>
+  `;
+  view.querySelectorAll('[data-view-result]').forEach(btn => btn.onclick = () => {
+    state.selectedResultId = btn.dataset.viewResult;
+    setView('detail');
+  });
+}
+
+function renderStep1(){
+  const sum = validationSummary();
+  const view = document.getElementById('view-step1');
+  const stage = state.step1Stage;
+  const processingSteps = [
+    { label:'Reading file', threshold:20 },
+    { label:'Identifying document type', threshold:40 },
+    { label:'Extracting fields and values', threshold:68 },
+    { label:'Mapping data to master table', threshold:86 },
+    { label:'Preparing validation rules', threshold:100 }
+  ];
+
+  let body = '';
+  if(stage === 'upload'){
+    body = `
+      <div class="card seq-shell">
+        <div class="card-header">
+          <div>
+            <div class="section-title">Add COA</div>
+            <div class="small muted">Upload a Certificate of Analysis to begin AI extraction.</div>
+          </div>
+          <span class="pill soft">Ready for upload</span>
+        </div>
+        <div class="card-body stack">
+          <div class="uploader">
+            <div style="font-size:18px;font-weight:700">Drag and drop your COA here</div>
+            <div class="small muted" style="margin-top:8px">Supported files: PDF, JPG, PNG, Word, and other common document types.</div>
+            <div class="dropzone-actions">
+              <button class="btn primary" id="browseBtn">Browse Files</button>
+              <button class="btn ghost" id="loadDemoBtn">Load Demo COA</button>
+            </div>
+          </div>
+          <div class="small muted">Demo flow uses <strong>COA-KIT3065-LOT307626.pdf</strong> as the uploaded source file.</div>
+        </div>
+      </div>
+    `;
+  } else if(stage === 'processing'){
+    body = `
+      <div class="card seq-shell">
+        <div class="card-header">
+          <div>
+            <div class="section-title">AI COA Ingestion</div>
+            <div class="small muted">The system is processing the uploaded document and extracting all detectable fields and values.</div>
+          </div>
+          <span class="pill soft">Processing</span>
+        </div>
+        <div class="card-body stack">
+          <div class="uploader compact">
+            <div style="font-size:16px;font-weight:700">COA-KIT3065-LOT307626.pdf</div>
+            <div class="small muted" style="margin-top:6px">Uploaded from local machine · AI extraction in progress</div>
+          </div>
+          <div class="progress-wrap">
+            <div class="progress-track"><div class="progress-fill" style="width:${state.ingestProgress}%"></div></div>
+            <div style="font-weight:700;min-width:52px;text-align:right">${state.ingestProgress}%</div>
+          </div>
+          <div class="status-list">
+            ${processingSteps.map(step => {
+              const cls = state.ingestProgress >= step.threshold ? 'done' : (state.ingestProgress >= step.threshold - 20 ? 'active' : '');
+              const txt = state.ingestProgress >= step.threshold ? 'Complete' : (state.ingestProgress >= step.threshold - 20 ? 'In progress' : 'Pending');
+              return `<div class="status-item ${cls}"><div>${step.label}</div><div class="small muted">${txt}</div></div>`;
+            }).join('')}
+          </div>
+        </div>
+      </div>
+    `;
+  } else if(stage === 'success'){
+    body = `
+      <div class="card seq-shell">
+        <div class="card-header">
+          <div>
+            <div class="section-title">COA Extraction Complete</div>
+            <div class="small muted">AI successfully ingested the file and prepared the extracted data for review.</div>
+          </div>
+          <span class="pill good">Extraction successful</span>
+        </div>
+        <div class="card-body stack">
+          <div class="success-banner">
+            <div class="success-icon">✓</div>
+            <div>
+              <div style="font-weight:700">COA extracted successfully</div>
+              <div class="small muted" style="margin-top:6px">All detectable fields and values were ingested into the master table and linked to the validation rules.</div>
+            </div>
+          </div>
+          <div class="grid grid-3">
+            <div class="meta"><div class="k">Fields Extracted</div><div class="v">${state.coaFields.length}</div></div>
+            <div class="meta"><div class="k">Rules Loaded</div><div class="v">${state.coaFields.length}</div></div>
+            <div class="meta"><div class="k">Status</div><div class="v">Ready for review</div></div>
+          </div>
+          <div class="footer-actions">
+            <div class="small muted">Next step: review the editable master table, validate the fields, then import into quantification.</div>
+            <button class="btn primary" id="reviewDataBtn">Review Extracted Data</button>
+          </div>
+        </div>
+      </div>
+    `;
+  } else {
+    body = `
+      <div class="card">
+        <div class="card-header">
+          <div>
+            <div class="section-title">Editable COA Master Table</div>
+            <div class="small muted">Review extracted values, edit any field, validate, and import into the quantification workflow.</div>
+          </div>
+          ${sum.complete && state.validationRun ? '<span class="pill good">Validation complete</span>' : '<span class="pill warn">Review required</span>'}
+        </div>
+        <div class="card-body stack">
+          <div class="grid grid-4">
+            <div class="meta"><div class="k">Uploaded File</div><div class="v">COA-KIT3065-LOT307626.pdf</div></div>
+            <div class="meta"><div class="k">Extracted Fields</div><div class="v">${state.coaFields.length}</div></div>
+            <div class="meta"><div class="k">Valid Fields</div><div class="v">${state.validationRun ? sum.valid : '—'}</div></div>
+            <div class="meta"><div class="k">Ready to Import</div><div class="v">${sum.complete && state.validationRun ? 'Yes' : 'No'}</div></div>
+          </div>
+          <div class="table-shell">
+            <table class="editable">
+              <thead>
+                <tr>
+                  <th style="width:26%">Field</th>
+                  <th>Extracted Value</th>
+                  <th style="width:17%">Rule</th>
+                  <th style="width:17%">Status</th>
+                </tr>
+              </thead>
+              <tbody>
+                ${state.coaFields.map(f => {
+                  const check = ruleCheck(f);
+                  return `
+                    <tr>
+                      <td>${f.label}</td>
+                      <td contenteditable="true" data-field="${f.key}">${f.value}</td>
+                      <td>${f.required ? 'Required' : 'Optional'}${f.key === 'catalogNo' ? ' · KIT####' : ''}${f.key === 'lot' ? ' · 6 digits' : ''}${(f.key === 'expiryDate' || f.key === 'coaDate') ? ' · YYYY-MM-DD' : ''}</td>
+                      <td class="${check.ok ? 'rule-pass' : 'rule-fail'}">${state.validationRun ? check.msg : 'Awaiting validation'}</td>
+                    </tr>
+                  `;
+                }).join('')}
+              </tbody>
+            </table>
+          </div>
+          <div class="card" style="box-shadow:none">
+            <div class="card-header">
+              <div>
+                <div class="section-title">Validation Summary</div>
+                <div class="small muted">Validate all extracted data against the expected rule for each field before import.</div>
+              </div>
+              ${sum.complete && state.validationRun ? '<span class="pill good">All rules passed</span>' : '<span class="pill warn">Validation required</span>'}
+            </div>
+            <div class="card-body stack">
+              <div class="grid grid-3">
+                <div class="meta"><div class="k">Valid Fields</div><div class="v">${state.validationRun ? sum.valid : 0}</div></div>
+                <div class="meta"><div class="k">Flagged Fields</div><div class="v">${state.validationRun ? sum.invalid : state.coaFields.length}</div></div>
+                <div class="meta"><div class="k">Import Status</div><div class="v">${sum.complete && state.validationRun ? 'Ready' : 'Pending validation'}</div></div>
+              </div>
+              <div class="footer-actions">
+                <div class="small muted">Users can edit any value before validating. Import remains disabled until validation passes.</div>
+                <div style="display:flex;gap:10px;flex-wrap:wrap">
+                  <button class="btn" id="reuploadBtn">Start Over</button>
+                  <button class="btn" id="validateBtn">Validate</button>
+                  <button class="btn primary" id="importBtn" ${sum.complete && state.validationRun ? '' : 'disabled'}>Import</button>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    `;
+  }
+
+  view.innerHTML = `
+    <div class="workflow">
+      <div class="step active"><div class="dot">1</div><div>Upload COA</div></div>
+      <div class="arrow">→</div>
+      <div class="step ${state.imported ? 'done' : ''}"><div class="dot">2</div><div>Quantification</div></div>
+      <div class="arrow">→</div>
+      <div class="step"><div class="dot">3</div><div>Result</div></div>
+    </div>
+    ${body}
+  `;
+
+  view.querySelectorAll('[data-field]').forEach(cell => {
+    cell.addEventListener('blur', e => {
+      const field = getField(e.target.dataset.field);
+      field.value = e.target.textContent.trim();
+      state.validationRun = false;
+      renderStep1();
+      renderHeader();
+    });
+  });
+
+  const browseBtn = document.getElementById('browseBtn');
+  if(browseBtn) browseBtn.onclick = () => beginSequentialIngestion();
+  const loadDemoBtn = document.getElementById('loadDemoBtn');
+  if(loadDemoBtn) loadDemoBtn.onclick = () => beginSequentialIngestion();
+  const reviewDataBtn = document.getElementById('reviewDataBtn');
+  if(reviewDataBtn) reviewDataBtn.onclick = () => { state.step1Stage = 'review'; renderStep1(); renderHeader(); };
+  const reuploadBtn = document.getElementById('reuploadBtn');
+  if(reuploadBtn) reuploadBtn.onclick = () => resetStep1();
+  const validateBtn = document.getElementById('validateBtn');
+  if(validateBtn) validateBtn.onclick = () => { state.validationRun = true; renderStep1(); renderHeader(); };
+  const importBtn = document.getElementById('importBtn');
+  if(importBtn) importBtn.onclick = () => {
+    state.imported = true;
+    state.activeWorkflowStep = 2;
+    state.quant.assayDescription = `Imported from ${fieldValue('product')} lot ${fieldValue('lot')}`;
+    setView('step2');
+  };
+}
+
+function renderStep2(){
+  const standards = calcStdRows();
+  const samples = sampleRows();
+  const goodCount = samples.filter(s => s.rangeClass === 'green').length;
+  const view = document.getElementById('view-step2');
+  view.innerHTML = `
+    <div class="workflow">
+      <div class="step done"><div class="dot">1</div><div>COA Imported</div></div>
+      <div class="arrow">→</div>
+      <div class="step active"><div class="dot">2</div><div>Quantification</div></div>
+      <div class="arrow">→</div>
+      <div class="step"><div class="dot">3</div><div>Save Result</div></div>
+    </div>
+
+    <div class="grid grid-4">
+      <div class="meta"><div class="k">Product</div><div class="v">${fieldValue('product')}</div></div>
+      <div class="meta"><div class="k">Lot</div><div class="v">${fieldValue('lot')}</div></div>
+      <div class="meta"><div class="k">Operator</div><div class="v">${state.quant.operator}</div></div>
+      <div class="meta"><div class="k">Quantifiable Samples</div><div class="v">${goodCount} / ${samples.length}</div></div>
+    </div>
+
+    <div class="card">
+      <div class="card-header">
+        <div>
+          <div class="section-title">Allergen Quantification Workspace</div>
+          <div class="small muted">Worksheet-style quantification screen populated from the imported COA.</div>
+        </div>
+        <div style="display:flex;gap:8px;flex-wrap:wrap">
+          <span class="pill soft">B-B0 auto-calculated</span>
+          <span class="pill soft">Range of Quantification highlighted</span>
+        </div>
+      </div>
+      <div class="card-body stack">
+        <div class="grid grid-2">
+          <div class="card">
+            <div class="card-header"><div class="section-title">Table 1 — Assay Data</div></div>
+            <div class="card-body grid grid-3">
+              <div class="field"><label>Operator</label><input id="operatorInput" type="text" value="${state.quant.operator}"></div>
+              <div class="field"><label>Date</label><input id="assayDateInput" type="date" value="${state.quant.assayDate}"></div>
+              <div class="field"><label>Assay Description</label><input id="assayDescInput" type="text" value="${state.quant.assayDescription}"></div>
+            </div>
+          </div>
+          <div class="card">
+            <div class="card-header"><div class="section-title">Table 2 — COA Reference Data</div></div>
+            <div class="card-body grid grid-3">
+              <div class="meta"><div class="k">Catalog No</div><div class="v">${fieldValue('catalogNo')}</div></div>
+              <div class="meta"><div class="k">Plate Lot</div><div class="v">${fieldValue('plateLot')}</div></div>
+              <div class="meta"><div class="k">Curve Geometry</div><div class="v">${fieldValue('curveGeometry')}</div></div>
+              <div class="meta"><div class="k">Std 0 Rule</div><div class="v">${fieldValue('acceptance0')}</div></div>
+              <div class="meta"><div class="k">Std 6 Rule</div><div class="v">${fieldValue('acceptance6')}</div></div>
+              <div class="meta"><div class="k">Std 24 Rule</div><div class="v">${fieldValue('acceptance24')}</div></div>
+            </div>
+          </div>
+        </div>
+
+        <div class="worksheet-shell">
+          <table>
+            <tr>
+              <th class="band-dark" colspan="5">Table 3 — Standard Curve</th>
+              <th class="band-dark" colspan="7">Table 4 & 5 — Sample Absorbance Values and ELISA Results</th>
+            </tr>
+            <tr>
+              <th class="band-blue">Std.</th>
+              <th class="band-blue">COA Mean OD450</th>
+              <th class="band-blue">Entered OD</th>
+              <th class="band-blue">B-B<sub>0</sub> (%)</th>
+              <th class="band-blue">Quality</th>
+              <th class="band-blue">Sample name</th>
+              <th class="band-blue">OD 1</th>
+              <th class="band-blue">OD 2</th>
+              <th class="band-blue">B-B<sub>0</sub></th>
+              <th class="band-blue">Assay concentration (ppm)</th>
+              <th class="band-blue">Dilution Factor</th>
+              <th class="band-blue">Sample concentration (ppm)</th>
+            </tr>
+            ${Array.from({length: Math.max(standards.length, samples.length)}).map((_, idx) => {
+              const std = standards[idx];
+              const sample = samples[idx];
+              return `
+                <tr>
+                  <td>${std ? std.std : ''}</td>
+                  <td>${std ? std.meanOD.toFixed(3) : ''}</td>
+                  <td>${std ? std.enteredOD.toFixed(3) : ''}</td>
+                  <td class="blue-col">${std ? std.enteredBB0.toFixed(1) : ''}</td>
+                  <td>${std ? `<span class="${std.pass ? 'rule-pass' : 'rule-fail'}">${std.pass ? 'Pass' : 'Review'}</span>` : ''}</td>
+                  <td>${sample ? sample.name : ''}</td>
+                  <td>${sample ? Number(sample.od1).toFixed(3) : ''}</td>
+                  <td>${sample ? Number(sample.od2).toFixed(3) : ''}</td>
+                  <td class="${sample ? sample.rangeClass : ''}">${sample ? sample.bb0.toFixed(1) : ''}</td>
+                  <td class="blue-col">${sample ? sample.assayText : ''}</td>
+                  <td>${sample ? sample.dilution : ''}</td>
+                  <td class="blue-col">${sample ? sample.sampleConc : ''}</td>
+                </tr>
+              `;
+            }).join('')}
+          </table>
+        </div>
+
+        <div class="detail-grid">
+          <div class="card">
+            <div class="card-header"><div class="section-title">Assay Quality Check</div></div>
+            <div class="card-body stack">
+              <div class="small muted">The standard curve compares entered OD values to the COA values and checks assay quality before final interpretation.</div>
+              <div class="chart">${renderChartSvg(standards)}</div>
+            </div>
+          </div>
+          <div class="card">
+            <div class="card-header"><div class="section-title">Quantification Summary</div></div>
+            <div class="card-body stack">
+              <div class="meta"><div class="k">Quantifiable</div><div class="v">${goodCount} of ${samples.length} samples are within the range of quantification.</div></div>
+              <div class="meta"><div class="k">Flag Logic</div><div class="v">Green values are quantifiable. Yellow and orange values require dilution review or are outside LoQ.</div></div>
+              <div class="meta"><div class="k">Interpretation</div><div class="v">&lt; LoQ means below assay limit. &gt; ULoQ means above upper limit and further dilution is needed.</div></div>
+              <div class="footer-actions">
+                <div class="small muted">Saving this run will add a new result to the AllergenIQ results page.</div>
+                <button class="btn primary" id="saveResultBtn">Save Quantification</button>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  `;
+  document.getElementById('operatorInput').oninput = e => state.quant.operator = e.target.value;
+  document.getElementById('assayDateInput').oninput = e => state.quant.assayDate = e.target.value;
+  document.getElementById('assayDescInput').oninput = e => state.quant.assayDescription = e.target.value;
+  document.getElementById('saveResultBtn').onclick = saveQuantification;
+}
+
+function renderChartSvg(standards){
+  const width = 520, height = 180, padding = 30;
+  const xs = standards.map((_, i) => i);
+  const ys = standards.map(s => s.enteredOD);
+  const maxY = Math.max(...ys, 2.1);
+  const x = i => padding + (i / 4) * (width - padding * 2);
+  const y = v => height - padding - (v / maxY) * (height - padding * 2);
+  const points = standards.map((s, i) => `${x(i)},${y(s.enteredOD)}`).join(' ');
+  const circles = standards.map((s, i) => `<circle cx="${x(i)}" cy="${y(s.enteredOD)}" r="4"></circle>`).join('');
+  const labels = standards.map((s, i) => `<text x="${x(i)}" y="${height - 10}" text-anchor="middle" font-size="10">Std ${s.std}</text>`).join('');
+  return `
+    <svg viewBox="0 0 ${width} ${height}" aria-label="standard curve chart">
+      <g fill="none" stroke="#c8d4e3" stroke-width="1">
+        <line x1="${padding}" y1="${padding}" x2="${padding}" y2="${height-padding}"></line>
+        <line x1="${padding}" y1="${height-padding}" x2="${width-padding}" y2="${height-padding}"></line>
+      </g>
+      <polyline fill="none" stroke="#5b97d0" stroke-width="3" points="${points}"></polyline>
+      <g fill="#223345">${circles}</g>
+      <g fill="#5f7187">${labels}</g>
+    </svg>
+  `;
+}
+
+function saveQuantification(){
+  const samples = sampleRows();
+  const quantifiableCount = samples.filter(s => s.rangeClass === 'green').length;
+  const flagged = samples.length - quantifiableCount;
+  const id = 'AQ-' + String(24019 + Math.floor(Math.random() * 70)).padStart(5,'0');
+  const newResult = {
+    id,
+    date: state.quant.assayDate,
+    assay: 'Histamine ELISA',
+    lot: fieldValue('lot'),
+    operator: state.quant.operator,
+    sampleCount: samples.length,
+    quantifiable: `${quantifiableCount} / ${samples.length}`,
+    flags: flagged ? `${flagged} outside RoQ` : 'None',
+    status: 'Completed',
+    product: fieldValue('product'),
+    kit: fieldValue('catalogNo'),
+    notes: state.quant.assayDescription,
+    resultSamples: samples
+  };
+  state.results.unshift(newResult);
+  state.selectedResultId = id;
+  state.highlightedResultId = id;
+  state.activeWorkflowStep = 3;
+  setView('detail');
+}
+
+function renderDetail(){
+  const result = currentResult();
+  const samples = result.resultSamples && result.resultSamples.length ? result.resultSamples : sampleRows();
+  const view = document.getElementById('view-detail');
+  view.innerHTML = `
+    <div class="result-summary">
+      <div class="meta"><div class="k">Result ID</div><div class="v">${result.id}</div></div>
+      <div class="meta"><div class="k">Date</div><div class="v">${formatDate(result.date)}</div></div>
+      <div class="meta"><div class="k">Operator</div><div class="v">${result.operator}</div></div>
+      <div class="meta"><div class="k">Status</div><div class="v">${result.status}</div></div>
+    </div>
+    <div class="detail-grid">
+      <div class="card">
+        <div class="card-header"><div class="section-title">Run Summary</div></div>
+        <div class="card-body stack">
+          <div class="meta"><div class="k">Product</div><div class="v">${result.product}</div></div>
+          <div class="meta"><div class="k">Kit / Lot</div><div class="v">${result.kit} · ${result.lot}</div></div>
+          <div class="meta"><div class="k">Notes</div><div class="v">${result.notes}</div></div>
+        </div>
+      </div>
+      <div class="card">
+        <div class="card-header"><div class="section-title">Imported COA Snapshot</div></div>
+        <div class="card-body grid grid-3">
+          <div class="meta"><div class="k">Catalog No</div><div class="v">${fieldValue('catalogNo')}</div></div>
+          <div class="meta"><div class="k">Lot</div><div class="v">${fieldValue('lot')}</div></div>
+          <div class="meta"><div class="k">Expiry</div><div class="v">${formatDate(fieldValue('expiryDate'))}</div></div>
+          <div class="meta"><div class="k">Std 0 Rule</div><div class="v">${fieldValue('acceptance0')}</div></div>
+          <div class="meta"><div class="k">Std 6 Rule</div><div class="v">${fieldValue('acceptance6')}</div></div>
+          <div class="meta"><div class="k">Std 24 Rule</div><div class="v">${fieldValue('acceptance24')}</div></div>
+        </div>
+      </div>
+    </div>
+    <div class="card">
+      <div class="card-header">
+        <div>
+          <div class="section-title">Saved Quantification Results</div>
+          <div class="small muted">The new quantification has been added to the historical results and is shown here as the saved result detail page.</div>
+        </div>
+        <button class="btn" id="openResultsBtn">Open Results Table</button>
+      </div>
+      <div class="card-body">
+        <div class="table-shell">
+          <table>
+            <thead>
+              <tr>
+                <th>Sample</th>
+                <th>OD 1</th>
+                <th>OD 2</th>
+                <th>B-B<sub>0</sub></th>
+                <th>Assay concentration (ppm)</th>
+                <th>Dilution</th>
+                <th>Sample concentration (ppm)</th>
+              </tr>
+            </thead>
+            <tbody>
+              ${samples.map(s => `
+                <tr>
+                  <td>${s.name}</td>
+                  <td>${Number(s.od1).toFixed(3)}</td>
+                  <td>${Number(s.od2).toFixed(3)}</td>
+                  <td class="${s.rangeClass}">${s.bb0.toFixed(1)}</td>
+                  <td>${s.assayText}</td>
+                  <td>${s.dilution}</td>
+                  <td>${s.sampleConc}</td>
+                </tr>
+              `).join('')}
+            </tbody>
+          </table>
+        </div>
+      </div>
+    </div>
+  `;
+  document.getElementById('openResultsBtn').onclick = () => setView('results');
+}
+
+function renderSettings(){
+  document.getElementById('view-settings').innerHTML = `
+    <div class="card">
+      <div class="card-header"><div class="section-title">System Settings</div></div>
+      <div class="card-body grid grid-3">
+        <div class="meta"><div class="k">COA Validation</div><div class="v">Required fields, lot format, date checks</div></div>
+        <div class="meta"><div class="k">RoQ Thresholds</div><div class="v">Green / Yellow / Orange status logic</div></div>
+        <div class="meta"><div class="k">Result Retention</div><div class="v">Historical quantification archive</div></div>
+      </div>
+    </div>
+  `;
+}
+
+
+function resetStep1(){
+  state.validationRun = false;
+  state.imported = false;
+  state.step1Stage = 'upload';
+  state.ingestProgress = 0;
+  renderStep1();
+  renderHeader();
+}
+
+function beginSequentialIngestion(){
+  state.activeWorkflowStep = 1;
+  state.validationRun = false;
+  state.step1Stage = 'processing';
+  state.ingestProgress = 0;
+  renderStep1();
+  renderHeader();
+  const marks = [18, 39, 63, 84, 100];
+  marks.forEach((value, index) => {
+    setTimeout(() => {
+      if(state.view !== 'step1' || state.step1Stage !== 'processing') return;
+      state.ingestProgress = value;
+      renderStep1();
+      renderHeader();
+      if(value === 100){
+        setTimeout(() => {
+          if(state.view !== 'step1') return;
+          state.step1Stage = 'success';
+          renderStep1();
+          renderHeader();
+        }, 350);
+      }
+    }, 350 + (index * 420));
+  });
+}
+
+function renderHelp(){
+  document.getElementById('view-help').innerHTML = `
+    <div class="card">
+      <div class="card-header"><div class="section-title">Workflow Help</div></div>
+      <div class="card-body stack">
+        <div class="meta"><div class="k">Step 1</div><div class="v">Upload a COA, let AI populate the master table, edit any values, validate, then import.</div></div>
+        <div class="meta"><div class="k">Step 2</div><div class="v">Run the quantification worksheet using imported COA data, standard curve values, sample OD values, and dilution factors.</div></div>
+        <div class="meta"><div class="k">Final</div><div class="v">Save the quantification and return to the updated historical results page.</div></div>
+      </div>
+    </div>
+  `;
+}
+
+function startNewWorkflow(){
+  state.activeWorkflowStep = 1;
+  state.validationRun = false;
+  state.imported = false;
+  state.step1Stage = 'upload';
+  state.ingestProgress = 0;
+  setView('step1');
+}
+
+function runGuidedDemo(){
+  state.activeWorkflowStep = 1;
+  state.validationRun = true;
+  state.imported = true;
+  state.quant.operator = 'Steve Romig';
+  state.quant.assayDate = '2026-04-09';
+  state.quant.assayDescription = `Imported from ${fieldValue('product')} lot ${fieldValue('lot')}`;
+  const savedId = 'AQ-24019';
+  const samples = sampleRows();
+  const quantifiableCount = samples.filter(s => s.rangeClass === 'green').length;
+  if(!state.results.find(r => r.id === savedId)){
+    state.results.unshift({
+      id: savedId,
+      date: state.quant.assayDate,
+      assay: 'Histamine ELISA',
+      lot: fieldValue('lot'),
+      operator: state.quant.operator,
+      sampleCount: samples.length,
+      quantifiable: `${quantifiableCount} / ${samples.length}`,
+      flags: `${samples.length - quantifiableCount} outside RoQ`,
+      status: 'Completed',
+      product: fieldValue('product'),
+      kit: fieldValue('catalogNo'),
+      notes: state.quant.assayDescription,
+      resultSamples: samples
+    });
+  }
+  state.selectedResultId = savedId;
+  state.highlightedResultId = savedId;
+  setView('detail');
+}
+
+renderNav();
+setView('results');
+</script>
+</body>
+</html>
