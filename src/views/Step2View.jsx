@@ -39,9 +39,9 @@ function CriteriaRow({ cr }) {
 export default function Step2View({ coaFields, quant, setQuant, fieldValue, saveQuantification }) {
   const allergen   = getAllergen(quant.allergenId || 'histamine')
   const stdRows    = calcStdRows(quant, allergen)
-  const curve      = fitCurve(stdRows)
+  const curve      = fitCurve(stdRows, allergen)
   const sampleRows = calcSampleRows(quant, allergen, curve, stdRows)
-  const qc         = runQC(stdRows, curve)
+  const qc         = runQC(stdRows, curve, allergen)
   const criteria   = evaluateCriteria(allergen, stdRows, curve)
   const goodCount  = sampleRows.filter(s => s.rangeClass === 'green').length
   const hasCOA     = allergen.standards.some(s => s.meanOD != null)
@@ -100,7 +100,7 @@ export default function Step2View({ coaFields, quant, setQuant, fieldValue, save
       <div className="card">
         <div className="card-header">
           <div className="section-title">Table 1 — Assay Data</div>
-          <span className={`pill ${isCompetitive ? 'soft' : 'soft'}`}>
+          <span className="pill soft">
             {isCompetitive ? 'Competitive inhibition ELISA' : 'Sandwich ELISA'}
           </span>
         </div>
@@ -163,7 +163,7 @@ export default function Step2View({ coaFields, quant, setQuant, fieldValue, save
                   <th>Conc. ({unit})</th>
                   {hasCOA && <th>COA Mean OD<sub>450</sub></th>}
                   {hasCOA && <th>CV%</th>}
-                  <th>B/Bmax (%)</th>
+                  {isCompetitive && <th>B/Bmax (%)</th>}
                 </tr>
               </thead>
               <tbody>
@@ -177,7 +177,7 @@ export default function Step2View({ coaFields, quant, setQuant, fieldValue, save
                       <td>{std.concentration}</td>
                       {hasCOA && <td>{std.meanOD != null ? std.meanOD.toFixed(3) : '—'}</td>}
                       {hasCOA && <td>{std.cv != null ? std.cv.toFixed(1) : '—'}</td>}
-                      <td className="blue-col">{bb0}</td>
+                      {isCompetitive && <td className="blue-col">{bb0}</td>}
                     </tr>
                   )
                 })}
@@ -185,7 +185,7 @@ export default function Step2View({ coaFields, quant, setQuant, fieldValue, save
             </table>
           </div>
 
-          {/* Criteria section — evaluated */}
+          {/* Criteria section — evaluated against Table 3 readings */}
           <div>
             <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 8 }}>
               <div className="small muted">
@@ -213,7 +213,9 @@ export default function Step2View({ coaFields, quant, setQuant, fieldValue, save
             <div className="section-title">Table 3 — Standard Curve</div>
             <div className="small muted" style={{ marginTop: 4 }}>
               Enter OD readings from your plate reader.
-              {isCompetitive ? ' OD should decrease with increasing concentration.' : ' OD should increase with increasing concentration.'}
+              {isCompetitive
+                ? ' OD should decrease with increasing concentration.'
+                : ' OD should increase with increasing concentration.'}
             </div>
           </div>
           <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap', alignItems: 'center' }}>
@@ -225,7 +227,7 @@ export default function Step2View({ coaFields, quant, setQuant, fieldValue, save
         </div>
         <div className="card-body stack">
           <div className="worksheet-shell">
-            <table style={{ minWidth: hasCOA ? 700 : 560 }}>
+            <table style={{ minWidth: hasCOA ? 700 : 500 }}>
               <thead>
                 <tr>
                   <th>Std.</th>
@@ -235,14 +237,16 @@ export default function Step2View({ coaFields, quant, setQuant, fieldValue, save
                   <th>Avg OD</th>
                   {hasCOA && <th>COA Ref OD</th>}
                   {hasCOA && <th>Δ OD</th>}
-                  <th>B/Bmax (%)</th>
-                  <th>Fitted ({unit})</th>
+                  {isCompetitive && <th>B/Bmax (%)</th>}
+                  <th>{isCompetitive ? `Fitted (${unit})` : 'Fitted OD'}</th>
                 </tr>
               </thead>
               <tbody>
                 {stdRows.map((std, idx) => {
-                  const fitted    = idx === 0 ? 0 : Math.max(0, curve.a * std.bb0 ** 2 + curve.b * std.bb0 + curve.c)
-                  const deltaOD   = std.meanOD != null ? std.avgOD - std.meanOD : null
+                  const fitted = isCompetitive
+                    ? (idx === 0 ? 0 : Math.max(0, curve.a * std.bb0 ** 2 + curve.b * std.bb0 + curve.c))
+                    : Math.max(0, curve.a * std.concentration ** 2 + curve.b * std.concentration + curve.c)
+                  const deltaOD    = std.meanOD != null ? std.avgOD - std.meanOD : null
                   const deltaClass = deltaOD != null && Math.abs(deltaOD) > 0.05 ? 'orange' : ''
                   return (
                     <tr key={idx}>
@@ -263,8 +267,8 @@ export default function Step2View({ coaFields, quant, setQuant, fieldValue, save
                           {deltaOD != null ? (deltaOD >= 0 ? '+' : '') + deltaOD.toFixed(3) : '—'}
                         </td>
                       )}
-                      <td className="blue-col">{fmt(std.bb0, 1)}</td>
-                      <td className="blue-col">{fitted.toFixed(2)}</td>
+                      {isCompetitive && <td className="blue-col">{fmt(std.bb0, 1)}</td>}
+                      <td className="blue-col">{fitted.toFixed(isCompetitive ? 2 : 3)}</td>
                     </tr>
                   )
                 })}
@@ -284,7 +288,7 @@ export default function Step2View({ coaFields, quant, setQuant, fieldValue, save
           </div>
 
           <div className="chart">
-            <ChartSvg stdRows={stdRows} curve={curve} />
+            <ChartSvg stdRows={stdRows} curve={curve} allergen={allergen} />
           </div>
         </div>
       </div>
@@ -297,7 +301,7 @@ export default function Step2View({ coaFields, quant, setQuant, fieldValue, save
         </div>
         <div className="card-body">
           <div className="worksheet-shell">
-            <table style={{ minWidth: 520 }}>
+            <table style={{ minWidth: isCompetitive ? 520 : 460 }}>
               <thead>
                 <tr>
                   <th style={{ width: 36 }}>#</th>
@@ -305,7 +309,7 @@ export default function Step2View({ coaFields, quant, setQuant, fieldValue, save
                   <th>OD<sub>1</sub></th>
                   <th>OD<sub>2</sub></th>
                   <th>Avg OD</th>
-                  <th>B/Bmax (%)</th>
+                  {isCompetitive && <th>B/Bmax (%)</th>}
                   <th style={{ width: 40 }}></th>
                 </tr>
               </thead>
@@ -326,7 +330,7 @@ export default function Step2View({ coaFields, quant, setQuant, fieldValue, save
                         onChange={e => setSampleField(idx, 'od2', e.target.value)} />
                     </td>
                     <td>{fmt(s.avgOD)}</td>
-                    <td className="blue-col">{fmt(s.bb0, 1)}</td>
+                    {isCompetitive && <td className="blue-col">{fmt(s.bb0, 1)}</td>}
                     <td style={{ textAlign: 'center' }}>
                       <button onClick={() => removeSample(idx)}
                         style={{ border: 'none', background: 'none', cursor: 'pointer', color: 'var(--muted)', fontSize: 16 }}
@@ -346,18 +350,21 @@ export default function Step2View({ coaFields, quant, setQuant, fieldValue, save
           <div>
             <div className="section-title">Table 5 — ELISA Results</div>
             <div className="small muted" style={{ marginTop: 4 }}>
-              Concentrations calculated by quadratic polynomial regression (Y = aX² + bX + c).
+              {isCompetitive
+                ? 'Concentrations back-calculated from B/Bmax via quadratic regression (Y = aX² + bX + c).'
+                : 'Concentrations solved from sample OD via inverted quadratic regression (OD = aX² + bX + c).'}
             </div>
           </div>
           <span className="pill soft">{goodCount} / {sampleRows.length} quantifiable</span>
         </div>
         <div className="card-body stack">
           <div className="worksheet-shell">
-            <table style={{ minWidth: 620 }}>
+            <table style={{ minWidth: isCompetitive ? 620 : 540 }}>
               <thead>
                 <tr>
                   <th>Sample</th>
-                  <th>B/Bmax (%)</th>
+                  <th>Avg OD</th>
+                  {isCompetitive && <th>B/Bmax (%)</th>}
                   <th>Assay Conc. ({unit})</th>
                   <th>Dilution Factor</th>
                   <th>Sample Conc. ({unit})</th>
@@ -371,7 +378,8 @@ export default function Step2View({ coaFields, quant, setQuant, fieldValue, save
                   return (
                     <tr key={idx}>
                       <td><strong>{s.name}</strong></td>
-                      <td>{fmt(s.bb0, 1)}</td>
+                      <td>{fmt(s.avgOD)}</td>
+                      {isCompetitive && <td>{fmt(s.bb0, 1)}</td>}
                       <td className={s.rangeClass}>{s.assayText}</td>
                       <td>
                         <input type="number" step="1" min="1" value={s.dilution}

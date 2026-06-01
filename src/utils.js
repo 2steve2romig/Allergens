@@ -73,6 +73,19 @@ function blankAvg(quant) {
   return (Number(e.od1) + Number(e.od2)) / 2
 }
 
+// Solve a·x² + b·x + (c − od) = 0 for the smallest non-negative root.
+function solveSandwich(a, b, c, od) {
+  if (Math.abs(a) < 1e-10) {
+    return Math.abs(b) > 1e-10 ? (od - c) / b : null
+  }
+  const disc = b * b - 4 * a * (c - od)
+  if (disc < 0) return null
+  const x1 = (-b + Math.sqrt(disc)) / (2 * a)
+  const x2 = (-b - Math.sqrt(disc)) / (2 * a)
+  const candidates = [x1, x2].filter(x => isFinite(x) && x >= 0)
+  return candidates.length > 0 ? Math.min(...candidates) : null
+}
+
 export function calcStdRows(quant, allergen) {
   const blank = blankAvg(quant)
   return allergen.standards.map((std, i) => {
@@ -88,18 +101,60 @@ export function calcStdRows(quant, allergen) {
   })
 }
 
-export function fitCurve(stdRows) {
-  return quadraticRegression(
-    stdRows.map(r => r.bb0),
-    stdRows.map(r => r.concentration)
-  )
+// Competitive: regress B/B₀ → concentration.
+// Sandwich:    regress concentration → OD (inverted axes; solve for conc given sample OD).
+export function fitCurve(stdRows, allergen) {
+  if (!allergen || allergen.assayFormat === 'competitive') {
+    return {
+      ...quadraticRegression(stdRows.map(r => r.bb0), stdRows.map(r => r.concentration)),
+      format: 'competitive',
+    }
+  }
+  return {
+    ...quadraticRegression(stdRows.map(r => r.concentration), stdRows.map(r => r.avgOD)),
+    format: 'sandwich',
+  }
 }
 
 export function calcSampleRows(quant, allergen, curve, stdRows) {
+  const { unit } = allergen
+
+  if (allergen.assayFormat === 'sandwich') {
+    const loqOD  = stdRows[1]?.avgOD ?? 0
+    const uloqOD = stdRows[stdRows.length - 1]?.avgOD ?? Infinity
+
+    return quant.samples.map(s => {
+      const od1   = Number(s.od1 || 0)
+      const od2   = Number(s.od2 || 0)
+      const avgOD = (od1 + od2) / 2
+
+      let assayConc = null, assayText, rangeClass
+      if (avgOD <= loqOD) {
+        rangeClass = 'orange'; assayText = '< LoQ'
+      } else if (avgOD > uloqOD) {
+        rangeClass = 'yellow'; assayText = '> ULoQ'
+      } else {
+        assayConc = solveSandwich(curve.a, curve.b, curve.c, avgOD)
+        if (assayConc == null) {
+          rangeClass = 'orange'; assayText = 'No solution'
+        } else {
+          assayConc  = Math.max(0, assayConc)
+          assayText  = assayConc.toFixed(2)
+          rangeClass = 'green'
+        }
+      }
+
+      const dilution   = Number(s.dilution || 1)
+      const sampleConc = assayConc != null ? (assayConc * dilution).toFixed(2) : assayText
+
+      return { ...s, avgOD, bb0: null, assayConc, assayText, sampleConc, rangeClass, unit }
+    })
+  }
+
+  // Competitive
   const blank   = blankAvg(quant)
   const loqBb0  = stdRows[1]?.bb0  ?? 90
   const uloqBb0 = stdRows[stdRows.length - 1]?.bb0 ?? 10
-  const { unit } = allergen
 
   return quant.samples.map(s => {
     const od1   = Number(s.od1 || 0)
@@ -119,35 +174,53 @@ export function calcSampleRows(quant, allergen, curve, stdRows) {
     }
 
     const dilution   = Number(s.dilution || 1)
-    const sampleConc = assayConc != null
-      ? (assayConc * dilution).toFixed(2)
-      : assayText
+    const sampleConc = assayConc != null ? (assayConc * dilution).toFixed(2) : assayText
 
     return { ...s, avgOD, bb0, assayConc, assayText, sampleConc, rangeClass, unit }
   })
 }
 
-export function runQC(stdRows, curve) {
+export function runQC(stdRows, curve, allergen) {
   const std0OD = stdRows[0]?.avgOD || 0
+  const std1OD = stdRows[1]?.avgOD || 0
   const lastOD = stdRows[stdRows.length - 1]?.avgOD || 0
-  const inhibitionRatio = lastOD > 0 ? std0OD / lastOD : 0
 
-  let monotonic = true
-  for (let i = 1; i < stdRows.length; i++) {
-    if (stdRows[i].avgOD > stdRows[i - 1].avgOD) { monotonic = false; break }
+  if (!allergen || allergen.assayFormat === 'competitive') {
+    const inhibitionRatio = lastOD > 0 ? std0OD / lastOD : 0
+    let monotonic = true
+    for (let i = 1; i < stdRows.length; i++) {
+      if (stdRows[i].avgOD > stdRows[i - 1].avgOD) { monotonic = false; break }
+    }
+    return {
+      blankOD:    { pass: std0OD > 0.5,          value: std0OD.toFixed(3),                 label: 'Blank OD' },
+      inhibition: { pass: inhibitionRatio > 2.0,  value: inhibitionRatio.toFixed(2) + '×', label: 'Signal Range (Std0/Stdn)' },
+      monotonic:  { pass: monotonic,              value: monotonic ? 'Decreasing' : 'Not monotonic', label: 'OD Monotonicity' },
+      curveFit:   { pass: curve.r2 >= 0.99,       value: curve.r2.toFixed(4),              label: 'Curve Fit R²' },
+    }
   }
 
+  // Sandwich: blank should be LOW, signal should INCREASE with concentration
+  const signalRatio = std1OD > 0 ? lastOD / std1OD : 0
+  let monotonic = true
+  for (let i = 1; i < stdRows.length; i++) {
+    if (stdRows[i].avgOD < stdRows[i - 1].avgOD) { monotonic = false; break }
+  }
   return {
-    blankOD:    { pass: std0OD > 0.5,           value: std0OD.toFixed(3),              label: 'Blank OD' },
-    inhibition: { pass: inhibitionRatio > 2.0,   value: inhibitionRatio.toFixed(2) + '×', label: 'Signal Range (Std0/Stdn)' },
-    monotonic:  { pass: monotonic,               value: monotonic ? 'Decreasing' : 'Not monotonic', label: 'OD Monotonicity' },
-    curveFit:   { pass: curve.r2 >= 0.99,        value: curve.r2.toFixed(4),            label: 'Curve Fit R²' },
+    blankOD:    { pass: std0OD < 0.250,         value: std0OD.toFixed(3),                label: 'Blank OD (Std. 0)' },
+    inhibition: { pass: signalRatio > 3.0,       value: signalRatio.toFixed(2) + '×',    label: 'Signal Range (Stdn/Std1)' },
+    monotonic:  { pass: monotonic,               value: monotonic ? 'Increasing' : 'Not monotonic', label: 'OD Monotonicity' },
+    curveFit:   { pass: curve.r2 >= 0.99,        value: curve.r2.toFixed(4),             label: 'Curve Fit R²' },
   }
 }
 
 export function evaluateCriteria(allergen, stdRows, curve) {
+  const hasData = stdRows.some(r => r.avgOD > 0.001)
+  if (!hasData) {
+    return allergen.criteria.map(text => ({ text, pass: null, computed: 'Enter OD values in Table 3' }))
+  }
+
   if (allergen.assayFormat === 'competitive') {
-    const qc = runQC(stdRows, curve)
+    const qc = runQC(stdRows, curve, allergen)
     return allergen.criteria.map((text, i) => {
       const checks = [qc.blankOD, qc.inhibition, qc.monotonic, qc.curveFit]
       const check = checks[i]
@@ -155,39 +228,19 @@ export function evaluateCriteria(allergen, stdRows, curve) {
     })
   }
 
+  // Sandwich: evaluate four OD-based acceptance criteria
   const std0OD = stdRows[0]?.avgOD || 0
   const std1OD = stdRows[1]?.avgOD || 0
   const lastOD = stdRows[stdRows.length - 1]?.avgOD || 0
-  const hasData = stdRows.some(r => r.avgOD > 0.001)
-
-  if (!hasData) {
-    return allergen.criteria.map(text => ({ text, pass: null, computed: 'Enter OD values in Table 3' }))
-  }
 
   const match2 = allergen.criteria[1]?.match(/>\s*([\d.]+)/)
   const threshold2 = match2 ? parseFloat(match2[1]) : 1.9
 
   return [
-    {
-      text: allergen.criteria[0],
-      pass: std0OD > 0 && std0OD < 0.250,
-      computed: `OD Std.0 = ${std0OD.toFixed(3)}`,
-    },
-    {
-      text: allergen.criteria[1],
-      pass: std0OD > 0 ? (std1OD / std0OD) > threshold2 : false,
-      computed: `Std.1/Std.0 = ${std0OD > 0 ? (std1OD / std0OD).toFixed(2) : '—'}`,
-    },
-    {
-      text: allergen.criteria[2],
-      pass: lastOD > 1.0,
-      computed: `OD Std.4 = ${lastOD.toFixed(3)}`,
-    },
-    {
-      text: allergen.criteria[3],
-      pass: std1OD > 0 ? (lastOD / std1OD) > 3 : false,
-      computed: `Std.4/Std.1 = ${std1OD > 0 ? (lastOD / std1OD).toFixed(2) : '—'}`,
-    },
+    { text: allergen.criteria[0], pass: std0OD > 0 && std0OD < 0.250,                      computed: `OD Std.0 = ${std0OD.toFixed(3)}` },
+    { text: allergen.criteria[1], pass: std0OD > 0 ? (std1OD / std0OD) > threshold2 : false, computed: `Std.1/Std.0 = ${std0OD > 0 ? (std1OD / std0OD).toFixed(2) : '—'}` },
+    { text: allergen.criteria[2], pass: lastOD > 1.0,                                        computed: `OD Std.4 = ${lastOD.toFixed(3)}` },
+    { text: allergen.criteria[3], pass: std1OD > 0 ? (lastOD / std1OD) > 3 : false,          computed: `Std.4/Std.1 = ${std1OD > 0 ? (lastOD / std1OD).toFixed(2) : '—'}` },
   ]
 }
 

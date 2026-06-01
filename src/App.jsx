@@ -70,7 +70,7 @@ export default function App() {
   const saveQuantification = useCallback(() => {
     const allergen   = getAllergen(quant.allergenId)
     const stdRows    = calcStdRows(quant, allergen)
-    const curve      = fitCurve(stdRows)
+    const curve      = fitCurve(stdRows, allergen)
     const samples    = calcSampleRows(quant, allergen, curve, stdRows)
     const quantifiable = samples.filter(s => s.rangeClass === 'green').length
     const flagged      = samples.length - quantifiable
