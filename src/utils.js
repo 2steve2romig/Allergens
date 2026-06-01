@@ -1,5 +1,3 @@
-import { coaDefaults } from './data.js'
-
 export function formatDate(iso) {
   if (!iso) return ''
   const d = new Date(iso + 'T00:00:00')
@@ -25,38 +23,106 @@ export function validationSummary(coaFields) {
   }
 }
 
-function interpolatePpm(bb0) {
-  if (bb0 >= 76.9) return 2
-  if (bb0 >= 50.8) return 6
-  if (bb0 >= 38.4) return 12
-  if (bb0 >= 26.3) return 24
-  if (bb0 >= 19.7) return 72
-  return 90
+function solveLinear3(A, rhs) {
+  const M = A.map((row, i) => [...row, rhs[i]])
+  for (let col = 0; col < 3; col++) {
+    let max = col
+    for (let row = col + 1; row < 3; row++) {
+      if (Math.abs(M[row][col]) > Math.abs(M[max][col])) max = row
+    }
+    ;[M[col], M[max]] = [M[max], M[col]]
+    for (let row = col + 1; row < 3; row++) {
+      const f = M[row][col] / M[col][col]
+      for (let j = col; j <= 3; j++) M[row][j] -= f * M[col][j]
+    }
+  }
+  const x = [0, 0, 0]
+  for (let i = 2; i >= 0; i--) {
+    x[i] = M[i][3]
+    for (let j = i + 1; j < 3; j++) x[i] -= M[i][j] * x[j]
+    x[i] /= M[i][i]
+  }
+  return x
 }
 
-export function calcStdRows(quant) {
-  const blank = quant.standardCurve[0] || 0
-  return coaDefaults.standards.slice(0, 5).map((std, i) => {
-    const od   = Number(quant.standardCurve[i] || 0)
-    const bb0  = blank ? (od / blank) * 100 : 0
-    const pass = Math.abs(od - std.meanOD) <= 0.04
-    return { ...std, enteredOD: od, enteredBB0: bb0, pass }
+export function quadraticRegression(xs, ys) {
+  const n = xs.length
+  let Sx=0, Sx2=0, Sx3=0, Sx4=0, Sy=0, Sxy=0, Sx2y=0
+  for (let i = 0; i < n; i++) {
+    const x = xs[i], y = ys[i], x2 = x * x
+    Sx += x; Sx2 += x2; Sx3 += x2 * x; Sx4 += x2 * x2
+    Sy += y; Sxy += x * y; Sx2y += x2 * y
+  }
+  const [a, b, c] = solveLinear3(
+    [[Sx4, Sx3, Sx2], [Sx3, Sx2, Sx], [Sx2, Sx, n]],
+    [Sx2y, Sxy, Sy]
+  )
+  const yMean = Sy / n
+  let ssTot = 0, ssRes = 0
+  for (let i = 0; i < n; i++) {
+    const pred = a * xs[i] * xs[i] + b * xs[i] + c
+    ssTot += (ys[i] - yMean) ** 2
+    ssRes += (ys[i] - pred) ** 2
+  }
+  const r2 = ssTot > 0 ? 1 - ssRes / ssTot : 1
+  return { a, b, c, r2 }
+}
+
+function blankAvg(quant) {
+  const e = quant.standardCurve[0] || { od1: 0, od2: 0 }
+  return (Number(e.od1) + Number(e.od2)) / 2
+}
+
+export function calcStdRows(quant, allergen) {
+  const blank = blankAvg(quant)
+  return allergen.standards.map((std, i) => {
+    const entry = quant.standardCurve[i] || { od1: 0, od2: 0 }
+    const od1   = Number(entry.od1 || 0)
+    const od2   = Number(entry.od2 || 0)
+    const avgOD = (od1 + od2) / 2
+    const bb0   = i === 0 ? 100 : (blank > 0 ? (avgOD / blank) * 100 : 0)
+    const coaBb0 = std.meanOD != null && allergen.standards[0].meanOD != null
+      ? (std.meanOD / allergen.standards[0].meanOD) * 100
+      : null
+    return { std: std.std, concentration: std.concentration, meanOD: std.meanOD, cv: std.cv, coaBb0, od1, od2, avgOD, bb0 }
   })
 }
 
-export function calcSampleRows(quant) {
-  const blank = quant.standardCurve[0] || 0
+export function fitCurve(stdRows) {
+  return quadraticRegression(
+    stdRows.map(r => r.bb0),
+    stdRows.map(r => r.concentration)
+  )
+}
+
+export function calcSampleRows(quant, allergen, curve, stdRows) {
+  const blank   = blankAvg(quant)
+  const loqBb0  = stdRows[1]?.bb0  ?? 90
+  const uloqBb0 = stdRows[stdRows.length - 1]?.bb0 ?? 10
+  const { unit } = allergen
+
   return quant.samples.map(s => {
-    const meanOD   = (Number(s.od1) + Number(s.od2)) / 2
-    const bb0      = blank ? (meanOD / blank) * 100 : 0
-    const assayConc = interpolatePpm(bb0)
-    let rangeClass  = 'green'
-    let assayText   = assayConc.toFixed(1)
-    if (bb0 > 95)       { rangeClass = 'orange'; assayText = '< LoQ'  }
-    else if (bb0 < 19.7){ rangeClass = 'yellow'; assayText = '> ULoQ' }
-    const sampleConc = assayText.includes('LoQ')
-      ? assayText
-      : (assayConc * Number(s.dilution || 1)).toFixed(1)
-    return { ...s, meanOD, bb0, assayText, sampleConc, rangeClass }
+    const od1   = Number(s.od1 || 0)
+    const od2   = Number(s.od2 || 0)
+    const avgOD = (od1 + od2) / 2
+    const bb0   = blank > 0 ? (avgOD / blank) * 100 : 0
+
+    let assayConc = null, assayText, rangeClass
+    if (bb0 >= loqBb0) {
+      rangeClass = 'orange'; assayText = '< LoQ'
+    } else if (bb0 <= uloqBb0) {
+      rangeClass = 'yellow'; assayText = '> ULoQ'
+    } else {
+      assayConc  = Math.max(0, curve.a * bb0 * bb0 + curve.b * bb0 + curve.c)
+      assayText  = assayConc.toFixed(2)
+      rangeClass = 'green'
+    }
+
+    const dilution   = Number(s.dilution || 1)
+    const sampleConc = assayConc != null
+      ? (assayConc * dilution).toFixed(2)
+      : assayText
+
+    return { ...s, avgOD, bb0, assayConc, assayText, sampleConc, rangeClass, unit }
   })
 }

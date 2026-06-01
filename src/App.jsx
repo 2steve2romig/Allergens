@@ -8,7 +8,8 @@ import DetailView from './views/DetailView.jsx'
 import SettingsView from './views/SettingsView.jsx'
 import HelpView from './views/HelpView.jsx'
 import { initialCoaFields, initialResults, initialQuant } from './data.js'
-import { calcSampleRows, validationSummary } from './utils.js'
+import { getAllergen } from './allergens.js'
+import { calcStdRows, calcSampleRows, fitCurve, validationSummary } from './utils.js'
 
 export default function App() {
   const [view,                setView]                = useState('results')
@@ -60,23 +61,26 @@ export default function App() {
   }, [fieldValue])
 
   const saveQuantification = useCallback(() => {
-    const samples        = calcSampleRows(quant)
-    const quantifiable   = samples.filter(s => s.rangeClass === 'green').length
-    const flagged        = samples.length - quantifiable
-    const id             = 'AQ-' + String(24019 + Math.floor(Math.random() * 70)).padStart(5, '0')
-    const newResult      = {
+    const allergen   = getAllergen(quant.allergenId)
+    const stdRows    = calcStdRows(quant, allergen)
+    const curve      = fitCurve(stdRows)
+    const samples    = calcSampleRows(quant, allergen, curve, stdRows)
+    const quantifiable = samples.filter(s => s.rangeClass === 'green').length
+    const flagged      = samples.length - quantifiable
+    const id           = 'AQ-' + String(24019 + Math.floor(Math.random() * 70)).padStart(5, '0')
+    const newResult    = {
       id,
-      date:          quant.assayDate,
-      assay:         'Histamine ELISA',
-      lot:           fieldValue('lot'),
-      operator:      quant.operator,
-      sampleCount:   samples.length,
-      quantifiable:  `${quantifiable} / ${samples.length}`,
-      flags:         flagged ? `${flagged} outside RoQ` : 'None',
-      status:        'Completed',
-      product:       fieldValue('product'),
-      kit:           fieldValue('catalogNo'),
-      notes:         quant.assayDescription,
+      date:         quant.assayDate,
+      assay:        allergen.name,
+      lot:          fieldValue('lot'),
+      operator:     quant.operator,
+      sampleCount:  samples.length,
+      quantifiable: `${quantifiable} / ${samples.length}`,
+      flags:        flagged ? `${flagged} outside RoQ` : 'None',
+      status:       'Completed',
+      product:      fieldValue('product'),
+      kit:          fieldValue('catalogNo'),
+      notes:        quant.assayDescription,
       resultSamples: samples,
     }
     setResults(prev => [newResult, ...prev])
@@ -94,13 +98,16 @@ export default function App() {
   }, [])
 
   const runGuidedDemo = useCallback(() => {
-    const samples      = calcSampleRows(quant)
+    const allergen   = getAllergen(quant.allergenId)
+    const stdRows    = calcStdRows(quant, allergen)
+    const curve      = fitCurve(stdRows)
+    const samples    = calcSampleRows(quant, allergen, curve, stdRows)
     const quantifiable = samples.filter(s => s.rangeClass === 'green').length
-    const savedId      = 'AQ-24019'
+    const savedId    = 'AQ-24019'
     setResults(prev => {
       if (prev.find(r => r.id === savedId)) return prev
       return [{
-        id: savedId, date: quant.assayDate, assay: 'Histamine ELISA',
+        id: savedId, date: quant.assayDate, assay: allergen.name,
         lot: fieldValue('lot'), operator: 'Steve Romig',
         sampleCount: samples.length, quantifiable: `${quantifiable} / ${samples.length}`,
         flags: `${samples.length - quantifiable} outside RoQ`, status: 'Completed',

@@ -319,19 +319,27 @@ textarea { min-height: 88px; resize: vertical; }
 .workflow .arrow { color: #9aa9bb; font-weight: 700; }
 
 /* Editable table */
-.editable td input {
+.editable td input,
+.worksheet-shell td input[type="number"],
+.worksheet-shell td input[type="text"] {
   border: none;
   background: transparent;
   width: 100%;
   font: inherit;
   color: var(--text);
   padding: 0;
+  -moz-appearance: textfield;
 }
-.editable td input:focus {
+.editable td input:focus,
+.worksheet-shell td input:focus {
   outline: 2px solid #8fb2dc;
   outline-offset: 2px;
   background: #eef6ff;
   border-radius: 4px;
+}
+.worksheet-shell td input[type="number"]::-webkit-inner-spin-button,
+.worksheet-shell td input[type="number"]::-webkit-outer-spin-button {
+  opacity: 0.4;
 }
 
 /* Rule pass/fail */
