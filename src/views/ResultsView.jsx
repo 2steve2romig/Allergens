@@ -23,13 +23,6 @@ export default function ResultsView({ results, highlightedResultId, coaFields, s
             <div className="section-title">Historical Allergen Quantification Results</div>
             <div className="small muted">Main landing page for AllergenIQ. Select an existing result or add a new quantification run.</div>
           </div>
-          <div className="workflow">
-            <div className="step done"><div className="dot">1</div><div>Upload COA</div></div>
-            <div className="arrow">→</div>
-            <div className="step done"><div className="dot">2</div><div>Quantification</div></div>
-            <div className="arrow">→</div>
-            <div className="step active"><div className="dot">3</div><div>Result Saved</div></div>
-          </div>
         </div>
         <div className="card-body">
           <div className="table-shell">
