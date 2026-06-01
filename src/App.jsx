@@ -5,7 +5,6 @@ import ResultsView from './views/ResultsView.jsx'
 import Step1View from './views/Step1View.jsx'
 import Step2View from './views/Step2View.jsx'
 import DetailView from './views/DetailView.jsx'
-import SettingsView from './views/SettingsView.jsx'
 import HelpView from './views/HelpView.jsx'
 import { initialCoaFields, initialResults, initialQuant } from './data.js'
 import { getAllergen } from './allergens.js'
@@ -112,23 +111,7 @@ export default function App() {
     setView('step2')
   }, [])
 
-  const resetAll = useCallback(() => {
-    setResults(initialResults)
-    setQuant(initialQuant)
-    setCoaFields(initialCoaFields)
-    setValidationRun(false)
-    setImported(false)
-    setStep1Stage('upload')
-    setIngestProgress(0)
-    setSelectedResultId('AQ-24018')
-    setHighlightedResultId(null)
-    localStorage.removeItem('aiq-results')
-    localStorage.removeItem('aiq-quant')
-    localStorage.removeItem('aiq-coafields')
-    setView('results')
-  }, [])
-
-  const sum           = validationSummary(coaFields)
+const sum           = validationSummary(coaFields)
   const currentResult = results.find(r => r.id === selectedResultId) || results[0]
 
   return (
@@ -186,8 +169,7 @@ export default function App() {
               setView={setView}
             />
           )}
-          {view === 'settings' && <SettingsView resetAll={resetAll} />}
-          {view === 'help'     && <HelpView />}
+          {view === 'help' && <HelpView />}
         </div>
       </main>
     </div>

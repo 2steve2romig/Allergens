@@ -3,7 +3,6 @@ const headerMap = {
   step1:    ['Step 1 of 2 — Upload COA',             'Import a Certificate of Analysis, review extracted values, validate each field, and import into quantification.'],
   step2:    ['Step 2 of 2 — Quantification',         'Run the worksheet-style quantification flow using imported COA values and sample absorbance data.'],
   detail:   ['Quantification Result Detail',          'Review the saved quantification, assay inputs, and calculated sample concentrations.'],
-  settings: ['AllergenIQ Settings',                  'Manage validation, thresholds, templates, and system preferences.'],
   help:     ['AllergenIQ Help',                      'View the guided workflow and demo usage notes.'],
 }
 
