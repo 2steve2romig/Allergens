@@ -14,10 +14,20 @@ function loadLS(key, fallback) {
   catch { return fallback }
 }
 
+function fileToBase64(file) {
+  return new Promise((resolve, reject) => {
+    const reader = new FileReader()
+    reader.onload  = () => resolve(reader.result.split(',')[1])
+    reader.onerror = reject
+    reader.readAsDataURL(file)
+  })
+}
+
 export default function App() {
   const [view,                setView]                = useState('results')
   const [step1Stage,          setStep1Stage]          = useState('upload')
   const [ingestProgress,      setIngestProgress]      = useState(0)
+  const [extractionSucceeded, setExtractionSucceeded] = useState(false)
   const [validationRun,       setValidationRun]       = useState(false)
   const [imported,            setImported]            = useState(false)
   const [selectedResultId,    setSelectedResultId]    = useState('AQ-24018')
@@ -39,24 +49,79 @@ export default function App() {
     setValidationRun(false)
   }, [])
 
-  const beginSequentialIngestion = useCallback(() => {
+  // Bulk-update coaFields from an AI extraction result object
+  const applyExtractedFields = useCallback((extracted) => {
+    setCoaFields(prev => prev.map(f =>
+      extracted[f.key] != null ? { ...f, value: String(extracted[f.key]) } : f
+    ))
+  }, [])
+
+  // Demo simulation (no file)
+  const runDemoIngestion = useCallback(() => {
     setStep1Stage('processing')
     setIngestProgress(0)
     setValidationRun(false)
+    setExtractionSucceeded(false)
     const marks = [18, 39, 63, 84, 100]
-    marks.forEach((value, index) => {
+    marks.forEach((pct, i) => {
       setTimeout(() => {
-        setIngestProgress(value)
-        if (value === 100) setTimeout(() => setStep1Stage('success'), 350)
-      }, 350 + index * 420)
+        setIngestProgress(pct)
+        if (pct === 100) setTimeout(() => setStep1Stage('success'), 350)
+      }, 350 + i * 420)
     })
   }, [])
+
+  // Real AI extraction (File object provided)
+  const runRealIngestion = useCallback(async (file) => {
+    setStep1Stage('processing')
+    setIngestProgress(0)
+    setValidationRun(false)
+    setExtractionSucceeded(false)
+
+    // Animate progress while the API call is in flight
+    let stopped = false
+    ;[12, 28, 46, 64, 80, 90].forEach((pct, i) => {
+      setTimeout(() => { if (!stopped) setIngestProgress(pct) }, i * 900)
+    })
+
+    try {
+      const fileData = await fileToBase64(file)
+      const mediaType = file.type || 'application/pdf'
+
+      const res  = await fetch('/api/extract-coa', {
+        method:  'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body:    JSON.stringify({ fileData, mediaType }),
+      })
+      const data = await res.json()
+
+      stopped = true
+
+      if (data.success && data.fields) {
+        applyExtractedFields(data.fields)
+        setExtractionSucceeded(true)
+      }
+    } catch (err) {
+      stopped = true
+      console.error('[AllergenIQ] AI extraction failed:', err)
+    }
+
+    setIngestProgress(100)
+    setTimeout(() => setStep1Stage('success'), 350)
+  }, [applyExtractedFields])
+
+  // Unified entry point: null → demo, File → real AI
+  const beginIngestion = useCallback((file) => {
+    if (file) runRealIngestion(file)
+    else      runDemoIngestion()
+  }, [runRealIngestion, runDemoIngestion])
 
   const resetStep1 = useCallback(() => {
     setValidationRun(false)
     setImported(false)
     setStep1Stage('upload')
     setIngestProgress(0)
+    setExtractionSucceeded(false)
   }, [])
 
   const handleImport = useCallback(() => {
@@ -66,28 +131,28 @@ export default function App() {
   }, [fieldValue])
 
   const saveQuantification = useCallback(() => {
-    const allergen   = getAllergen(quant.allergenId)
-    const stdRows    = calcStdRows(quant, allergen)
-    const curve      = fitCurve(stdRows, allergen)
-    const samples    = calcSampleRows(quant, allergen, curve, stdRows)
+    const allergen    = getAllergen(quant.allergenId)
+    const stdRows     = calcStdRows(quant, allergen)
+    const curve       = fitCurve(stdRows, allergen)
+    const samples     = calcSampleRows(quant, allergen, curve, stdRows)
     const quantifiable = samples.filter(s => s.rangeClass === 'green').length
     const flagged      = samples.length - quantifiable
     const id           = 'AQ-' + String(24019 + Math.floor(Math.random() * 70)).padStart(5, '0')
     const newResult    = {
       id,
-      date:         quant.assayDate,
-      assay:        allergen.name,
-      lot:          fieldValue('lot'),
-      operator:     quant.operator,
-      sampleCount:  samples.length,
-      quantifiable: `${quantifiable} / ${samples.length}`,
-      flags:        flagged ? `${flagged} outside RoQ` : 'None',
-      status:       'Completed',
-      product:      fieldValue('product'),
-      kit:          fieldValue('catalogNo'),
-      notes:        quant.assayDescription,
+      date:          quant.assayDate,
+      assay:         allergen.name,
+      lot:           fieldValue('lot'),
+      operator:      quant.operator,
+      sampleCount:   samples.length,
+      quantifiable:  `${quantifiable} / ${samples.length}`,
+      flags:         flagged ? `${flagged} outside RoQ` : 'None',
+      status:        'Completed',
+      product:       fieldValue('product'),
+      kit:           fieldValue('catalogNo'),
+      notes:         quant.assayDescription,
       resultSamples: samples,
-      savedQuant:   { ...quant },
+      savedQuant:    { ...quant },
     }
     setResults(prev => [newResult, ...prev])
     setSelectedResultId(id)
@@ -100,10 +165,11 @@ export default function App() {
     setImported(false)
     setStep1Stage('upload')
     setIngestProgress(0)
+    setExtractionSucceeded(false)
     setView('step1')
   }, [])
 
-const sum           = validationSummary(coaFields)
+  const sum           = validationSummary(coaFields)
   const currentResult = results.find(r => r.id === selectedResultId) || results[0]
 
   return (
@@ -139,7 +205,8 @@ const sum           = validationSummary(coaFields)
               coaFields={coaFields}
               updateCoaField={updateCoaField}
               sum={sum}
-              beginSequentialIngestion={beginSequentialIngestion}
+              beginIngestion={beginIngestion}
+              extractionSucceeded={extractionSucceeded}
               resetStep1={resetStep1}
               handleImport={handleImport}
             />

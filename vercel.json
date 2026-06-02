@@ -1,0 +1,7 @@
+{
+  "functions": {
+    "api/extract-coa.js": {
+      "maxDuration": 30
+    }
+  }
+}
