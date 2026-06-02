@@ -5,13 +5,21 @@ const headerMap = {
   detail:   ['Quantification Result Detail',          'Review the saved quantification, assay inputs, and calculated sample concentrations.'],
 }
 
-export default function TopBar({ view, setView, startNewWorkflow, step1Stage, validationRun, sum }) {
+const dbPill = {
+  syncing: <span className="pill soft">Syncing…</span>,
+  synced:  <span className="pill good">Cloud sync</span>,
+  error:   <span className="pill warn">Local only</span>,
+  local:   null,
+}
+
+export default function TopBar({ view, setView, startNewWorkflow, step1Stage, validationRun, sum, dbStatus }) {
   const [title, subtitle] = headerMap[view] || ['', '']
 
   const renderActions = () => {
     if (view === 'results') return (
       <>
-<button className="btn primary" onClick={startNewWorkflow}>Add New</button>
+        {dbPill[dbStatus] ?? null}
+        <button className="btn primary" onClick={startNewWorkflow}>Add New</button>
       </>
     )
 

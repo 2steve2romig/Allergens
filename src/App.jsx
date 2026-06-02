@@ -8,6 +8,7 @@ import DetailView from './views/DetailView.jsx'
 import { initialCoaFields, initialResults, initialQuant } from './data.js'
 import { getAllergen } from './allergens.js'
 import { calcStdRows, calcSampleRows, fitCurve, validationSummary } from './utils.js'
+import { fetchResults, upsertResult, upsertMany, isConfigured } from './lib/db.js'
 
 function loadLS(key, fallback) {
   try { const v = localStorage.getItem(key); return v ? JSON.parse(v) : fallback }
@@ -25,6 +26,7 @@ function fileToBase64(file) {
 
 export default function App() {
   const [view,                setView]                = useState('results')
+  const [dbStatus,            setDbStatus]            = useState(isConfigured ? 'syncing' : 'local')
   const [step1Stage,          setStep1Stage]          = useState('upload')
   const [ingestProgress,      setIngestProgress]      = useState(0)
   const [extractionSucceeded, setExtractionSucceeded] = useState(false)
@@ -39,6 +41,27 @@ export default function App() {
   useEffect(() => { localStorage.setItem('aiq-coafields', JSON.stringify(coaFields)) }, [coaFields])
   useEffect(() => { localStorage.setItem('aiq-quant', JSON.stringify(quant)) }, [quant])
   useEffect(() => { localStorage.setItem('aiq-results', JSON.stringify(results)) }, [results])
+
+  // Supabase sync — runs once on mount; localStorage is the fast local cache
+  useEffect(() => {
+    if (!isConfigured) return
+    fetchResults()
+      .then(remote => {
+        if (remote.length > 0) {
+          // Remote has data — use it as source of truth
+          setResults(remote)
+          localStorage.setItem('aiq-results', JSON.stringify(remote))
+        } else {
+          // Supabase is empty (first time) — seed it from initial data
+          upsertMany(initialResults).catch(console.warn)
+        }
+        setDbStatus('synced')
+      })
+      .catch(err => {
+        console.warn('[AllergenIQ] Supabase sync failed:', err)
+        setDbStatus('error')
+      })
+  }, []) // eslint-disable-line react-hooks/exhaustive-deps
 
   const fieldValue = useCallback((key) => (
     coaFields.find(f => f.key === key)?.value || ''
@@ -158,6 +181,7 @@ export default function App() {
     setSelectedResultId(id)
     setHighlightedResultId(id)
     setView('results')
+    upsertResult(newResult).catch(err => console.warn('[AllergenIQ] Supabase save failed:', err))
   }, [quant, fieldValue])
 
   const startNewWorkflow = useCallback(() => {
@@ -183,6 +207,7 @@ export default function App() {
           step1Stage={step1Stage}
           validationRun={validationRun}
           sum={sum}
+          dbStatus={dbStatus}
         />
         <div className="page">
           {view === 'results' && (
