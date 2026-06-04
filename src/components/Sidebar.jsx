@@ -2,7 +2,7 @@ const navItems = [
   { id: 'results-list', label: 'AllergenIQ®' },
 ]
 
-export default function Sidebar({ view, setView, startNewWorkflow }) {
+export default function Sidebar({ view, setView, startNewWorkflow, openDemoModal }) {
   const isActive = (id) => {
     if (id === 'results-list') return view === 'results' || view === 'detail'
     if (id === 'add') return view === 'step1' || view === 'step2'
@@ -33,6 +33,11 @@ export default function Sidebar({ view, setView, startNewWorkflow }) {
         ))}
       </nav>
       <div className="nav-spacer" />
+      <div className="sidebar-demo">
+        <button className="btn-demo" onClick={openDemoModal}>
+          ▶ Demo Scenarios
+        </button>
+      </div>
     </aside>
   )
 }

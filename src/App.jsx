@@ -1,5 +1,6 @@
 import { useState, useCallback, useEffect } from 'react'
 import Sidebar from './components/Sidebar.jsx'
+import DemoModal from './components/DemoModal.jsx'
 import TopBar from './components/TopBar.jsx'
 import ResultsView from './views/ResultsView.jsx'
 import Step1View from './views/Step1View.jsx'
@@ -26,6 +27,7 @@ function fileToBase64(file) {
 
 export default function App() {
   const [view,                setView]                = useState('results')
+  const [showDemoModal,       setShowDemoModal]       = useState(false)
   const [dbStatus,            setDbStatus]            = useState(isConfigured ? 'syncing' : 'local')
   const [step1Stage,          setStep1Stage]          = useState('upload')
   const [ingestProgress,      setIngestProgress]      = useState(0)
@@ -184,6 +186,34 @@ export default function App() {
     upsertResult(newResult).catch(err => console.warn('[AllergenIQ] Supabase save failed:', err))
   }, [quant, fieldValue])
 
+  const loadScenario = useCallback((scenario) => {
+    setShowDemoModal(false)
+
+    if (scenario.coaFields) setCoaFields(scenario.coaFields)
+    if (scenario.quant)     setQuant(scenario.quant)
+
+    if (scenario.action === 'detail') {
+      setSelectedResultId(scenario.resultId)
+      setView('detail')
+      return
+    }
+
+    if (scenario.action === 'step2') {
+      setImported(true)
+      setView('step2')
+      return
+    }
+
+    if (scenario.action === 'step1') {
+      setValidationRun(false)
+      setImported(false)
+      setStep1Stage('upload')
+      setIngestProgress(0)
+      setExtractionSucceeded(false)
+      setView('step1')
+    }
+  }, [])
+
   const startNewWorkflow = useCallback(() => {
     setValidationRun(false)
     setImported(false)
@@ -198,7 +228,13 @@ export default function App() {
 
   return (
     <div className="app">
-      <Sidebar view={view} setView={setView} startNewWorkflow={startNewWorkflow} />
+      {showDemoModal && (
+        <DemoModal
+          onSelect={loadScenario}
+          onClose={() => setShowDemoModal(false)}
+        />
+      )}
+      <Sidebar view={view} setView={setView} startNewWorkflow={startNewWorkflow} openDemoModal={() => setShowDemoModal(true)} />
       <main className="main">
         <TopBar
           view={view}
