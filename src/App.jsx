@@ -1,6 +1,7 @@
 import { useState, useCallback, useEffect } from 'react'
 import Sidebar from './components/Sidebar.jsx'
 import DemoModal from './components/DemoModal.jsx'
+import DemoGuide from './components/DemoGuide.jsx'
 import TopBar from './components/TopBar.jsx'
 import ResultsView from './views/ResultsView.jsx'
 import Step1View from './views/Step1View.jsx'
@@ -28,6 +29,8 @@ function fileToBase64(file) {
 export default function App() {
   const [view,                setView]                = useState('results')
   const [showDemoModal,       setShowDemoModal]       = useState(false)
+  const [activeScenario,      setActiveScenario]      = useState(null)
+  const [activeStep,          setActiveStep]          = useState(0)
   const [dbStatus,            setDbStatus]            = useState(isConfigured ? 'syncing' : 'local')
   const [step1Stage,          setStep1Stage]          = useState('upload')
   const [ingestProgress,      setIngestProgress]      = useState(0)
@@ -186,33 +189,45 @@ export default function App() {
     upsertResult(newResult).catch(err => console.warn('[AllergenIQ] Supabase save failed:', err))
   }, [quant, fieldValue])
 
+  // Apply a single step's navigation + state directives
+  const applyStep = useCallback((scenario, step) => {
+    if (step.applyScenarioData) {
+      if (scenario.coaFields) setCoaFields(scenario.coaFields)
+      if (scenario.quant)     setQuant(scenario.quant)
+    }
+    if (step.setResultId      !== undefined) setSelectedResultId(step.setResultId)
+    if (step.setStep1Stage    !== undefined) setStep1Stage(step.setStep1Stage)
+    if (step.setValidationRun !== undefined) setValidationRun(step.setValidationRun)
+    if (step.setImported      !== undefined) setImported(step.setImported)
+    if (step.view)                           setView(step.view)
+  }, [])
+
   const loadScenario = useCallback((scenario) => {
     setShowDemoModal(false)
+    setActiveScenario(scenario)
+    setActiveStep(0)
+    applyStep(scenario, scenario.steps[0])
+  }, [applyStep])
 
-    if (scenario.coaFields) setCoaFields(scenario.coaFields)
-    if (scenario.quant)     setQuant(scenario.quant)
+  const demoNext = useCallback(() => {
+    setActiveStep(prev => {
+      const next = prev + 1
+      if (next < activeScenario.steps.length) {
+        applyStep(activeScenario, activeScenario.steps[next])
+      }
+      return next
+    })
+  }, [activeScenario, applyStep])
 
-    if (scenario.action === 'detail') {
-      setSelectedResultId(scenario.resultId)
-      setView('detail')
-      return
-    }
-
-    if (scenario.action === 'step2') {
-      setImported(true)
-      setView('step2')
-      return
-    }
-
-    if (scenario.action === 'step1') {
-      setValidationRun(false)
-      setImported(false)
-      setStep1Stage('upload')
-      setIngestProgress(0)
-      setExtractionSucceeded(false)
-      setView('step1')
-    }
-  }, [])
+  const demoPrev = useCallback(() => {
+    setActiveStep(prev => {
+      const back = prev - 1
+      if (back >= 0) {
+        applyStep(activeScenario, activeScenario.steps[back])
+      }
+      return back
+    })
+  }, [activeScenario, applyStep])
 
   const startNewWorkflow = useCallback(() => {
     setValidationRun(false)
@@ -232,6 +247,15 @@ export default function App() {
         <DemoModal
           onSelect={loadScenario}
           onClose={() => setShowDemoModal(false)}
+        />
+      )}
+      {activeScenario && (
+        <DemoGuide
+          scenario={activeScenario}
+          stepIndex={activeStep}
+          onNext={demoNext}
+          onPrev={demoPrev}
+          onClose={() => setActiveScenario(null)}
         />
       )}
       <Sidebar view={view} setView={setView} startNewWorkflow={startNewWorkflow} openDemoModal={() => setShowDemoModal(true)} />
