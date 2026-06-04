@@ -31,13 +31,13 @@ export default function Sidebar({ view, setView, startNewWorkflow, openDemoModal
             {item.label}
           </button>
         ))}
+        <div className="sidebar-demo">
+          <button className="btn-demo" onClick={openDemoModal}>
+            ▶ Demo Scenarios
+          </button>
+        </div>
       </nav>
       <div className="nav-spacer" />
-      <div className="sidebar-demo">
-        <button className="btn-demo" onClick={openDemoModal}>
-          ▶ Demo Scenarios
-        </button>
-      </div>
     </aside>
   )
 }
