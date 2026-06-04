@@ -33,7 +33,8 @@ export default function DemoModal({ onSelect, onClose }) {
 }
 
 function ScenarioCard({ scenario, onSelect }) {
-  const { color, icon, title, subtitle, description, tags, roles, time, steps } = scenario
+  const { color, icon, title, subtitle, description, tags, roles, time, steps: stepList } = scenario
+  const stepCount = Array.isArray(stepList) ? stepList.length : stepList
   return (
     <div className="scenario-card">
       <div className="scenario-head" style={{ background: color }}>
@@ -53,7 +54,7 @@ function ScenarioCard({ scenario, onSelect }) {
         <div style={{ display: 'flex', gap: 14, fontSize: 12, color: 'var(--muted)', marginBottom: 16 }}>
           <span>👤 {roles}</span>
           <span>⏱ {time}</span>
-          <span>📋 {steps}</span>
+          <span>📋 {stepCount} steps</span>
         </div>
         <button
           className="btn primary"

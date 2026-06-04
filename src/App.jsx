@@ -210,24 +210,20 @@ export default function App() {
   }, [applyStep])
 
   const demoNext = useCallback(() => {
-    setActiveStep(prev => {
-      const next = prev + 1
-      if (next < activeScenario.steps.length) {
-        applyStep(activeScenario, activeScenario.steps[next])
-      }
-      return next
-    })
-  }, [activeScenario, applyStep])
+    const next = activeStep + 1
+    if (next < activeScenario.steps.length) {
+      setActiveStep(next)
+      applyStep(activeScenario, activeScenario.steps[next])
+    }
+  }, [activeScenario, activeStep, applyStep])
 
   const demoPrev = useCallback(() => {
-    setActiveStep(prev => {
-      const back = prev - 1
-      if (back >= 0) {
-        applyStep(activeScenario, activeScenario.steps[back])
-      }
-      return back
-    })
-  }, [activeScenario, applyStep])
+    const back = activeStep - 1
+    if (back >= 0) {
+      setActiveStep(back)
+      applyStep(activeScenario, activeScenario.steps[back])
+    }
+  }, [activeScenario, activeStep, applyStep])
 
   const startNewWorkflow = useCallback(() => {
     setValidationRun(false)
