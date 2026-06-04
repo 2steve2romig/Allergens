@@ -1,7 +1,8 @@
+import { createPortal } from 'react-dom'
 import { SCENARIOS } from '../data/scenarios.js'
 
 export default function DemoModal({ onSelect, onClose }) {
-  return (
+  return createPortal(
     <div className="modal-overlay" onClick={onClose}>
       <div className="modal-box" onClick={e => e.stopPropagation()}>
 
@@ -26,7 +27,8 @@ export default function DemoModal({ onSelect, onClose }) {
         </div>
 
       </div>
-    </div>
+    </div>,
+    document.body
   )
 }
 
