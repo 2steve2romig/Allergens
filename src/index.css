@@ -232,6 +232,8 @@ textarea { min-height: 88px; resize: vertical; }
   border-radius: 16px;
   padding: 20px;
   text-align: center;
+  transition: border-color .15s, background .15s;
+  cursor: default;
 }
 .uploader.compact { padding: 16px 18px; text-align: left; }
 .dropzone-actions { display: flex; justify-content: center; gap: 10px; flex-wrap: wrap; margin-top: 14px; }

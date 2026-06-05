@@ -91,10 +91,31 @@ export default function Step1View({
 
 function UploadStage({ onStart }) {
   const fileRef = useRef(null)
+  const [dragging, setDragging] = useState(false)
 
   const handleFile = e => {
     const file = e.target.files[0]
-    if (file) onStart(file)   // real File object
+    if (file) onStart(file)
+  }
+
+  const handleDragOver = e => {
+    e.preventDefault()
+    e.stopPropagation()
+    setDragging(true)
+  }
+
+  const handleDragLeave = e => {
+    e.preventDefault()
+    e.stopPropagation()
+    setDragging(false)
+  }
+
+  const handleDrop = e => {
+    e.preventDefault()
+    e.stopPropagation()
+    setDragging(false)
+    const file = e.dataTransfer.files?.[0]
+    if (file) onStart(file)
   }
 
   return (
@@ -107,8 +128,17 @@ function UploadStage({ onStart }) {
         <span className="pill soft">Ready for upload</span>
       </div>
       <div className="card-body stack">
-        <div className="uploader">
-          <div style={{ fontSize: 18, fontWeight: 700 }}>Drag and drop your COA here</div>
+        <div
+          className="uploader"
+          onDragOver={handleDragOver}
+          onDragEnter={handleDragOver}
+          onDragLeave={handleDragLeave}
+          onDrop={handleDrop}
+          style={dragging ? { borderColor: 'var(--accent)', background: '#eef4ff' } : undefined}
+        >
+          <div style={{ fontSize: 18, fontWeight: 700 }}>
+            {dragging ? 'Drop to upload' : 'Drag and drop your COA here'}
+          </div>
           <div className="small muted" style={{ marginTop: 8 }}>
             Supported: PDF, JPG, PNG, WebP
           </div>
