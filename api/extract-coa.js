@@ -57,26 +57,21 @@ export default async function handler(req, res) {
   try {
     const client = new Anthropic({ apiKey: process.env.ANTHROPIC_API_KEY })
 
-    const message = await client.messages.create({
+    const isPdf = mediaType === 'application/pdf'
+
+    // PDF support requires the beta header; images use the standard API
+    const createFn = isPdf ? client.beta.messages.create.bind(client.beta.messages) : client.messages.create.bind(client.messages)
+
+    const params = {
       model: 'claude-opus-4-5',
       max_tokens: 512,
-      system: [
-        {
-          type: 'text',
-          text: SYSTEM,
-          cache_control: { type: 'ephemeral' },
-        },
-      ],
-      messages: [
-        {
-          role: 'user',
-          content: [
-            fileBlock,
-            { type: 'text', text: PROMPT },
-          ],
-        },
-      ],
-    })
+      system: [{ type: 'text', text: SYSTEM, cache_control: { type: 'ephemeral' } }],
+      messages: [{ role: 'user', content: [fileBlock, { type: 'text', text: PROMPT }] }],
+    }
+
+    if (isPdf) params.betas = ['pdfs-2024-09-25']
+
+    const message = await createFn(params)
 
     const raw = message.content[0]?.text?.trim() || ''
 
@@ -93,7 +88,7 @@ export default async function handler(req, res) {
     return res.status(200).json({ success: true, fields })
 
   } catch (err) {
-    console.error('[extract-coa]', err.message)
-    return res.status(500).json({ error: err.message || 'AI extraction failed' })
+    console.error('[extract-coa] error:', err.message, err.status, err.error)
+    return res.status(500).json({ error: err.message || 'AI extraction failed', status: err.status })
   }
 }
