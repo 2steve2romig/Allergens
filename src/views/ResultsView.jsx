@@ -1,5 +1,6 @@
 import { useState, useMemo } from 'react'
 import { formatDate } from '../utils.js'
+import PageInstructions from '../components/PageInstructions.jsx'
 
 const PAGE_SIZES = [5, 10, 25, 50]
 
@@ -52,6 +53,15 @@ export default function ResultsView({ results, highlightedResultId, coaFields, s
 
   return (
     <div className="stack">
+      <PageInstructions
+        title="Allergen Quantification Results"
+        steps={[
+          'Use the search bar to find results by ID, lot, assay type, operator, or any other field.',
+          'Use the Assay, Operator, and Status dropdowns to filter the table by column.',
+          'Click View Result on any row to open the full quantification report, standard curve, and sample data.',
+          'Click Add New in the top bar to start a new quantification workflow from a COA.',
+        ]}
+      />
       <div className="grid grid-4">
         <div className="meta"><div className="k">Historical Results</div><div className="v">{results.length}</div></div>
         <div className="meta"><div className="k">Completed This Month</div><div className="v">{results.filter(r => r.status === 'Completed').length}</div></div>

@@ -1,3 +1,4 @@
+import PageInstructions from '../components/PageInstructions.jsx'
 import { formatDate, calcStdRows, calcSampleRows, fitCurve, runQC, evaluateCriteria } from '../utils.js'
 import { getAllergen } from '../allergens.js'
 import ChartSvg from '../components/ChartSvg.jsx'
@@ -56,6 +57,17 @@ export default function DetailView({ result, fieldValue, setView }) {
 
   return (
     <div className="stack">
+
+      <PageInstructions
+        title="Quantification Result Report"
+        steps={[
+          'The Run Summary and Imported COA Snapshot show the metadata recorded at the time of save.',
+          'The Standard Curve section displays the fitted quadratic regression and QC checks for this run.',
+          'The Acceptance Criteria section shows whether this assay met all kit-specific pass/fail thresholds.',
+          'Sample Results shows back-calculated concentrations for each unknown. Green = quantified within RoQ.',
+          'Click Open Worksheet to return to the editable quantification view, or Results Table to go back to the list.',
+        ]}
+      />
 
       {/* Summary strip */}
       <div className="result-summary">

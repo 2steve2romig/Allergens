@@ -1,5 +1,6 @@
 import { useState, useRef } from 'react'
 import { ruleCheck } from '../utils.js'
+import PageInstructions from '../components/PageInstructions.jsx'
 
 const processingSteps = [
   { label: 'Reading document structure',    threshold: 20  },
@@ -43,6 +44,15 @@ export default function Step1View({
 
   return (
     <div className="stack">
+      <PageInstructions
+        title="Step 1 — COA Import"
+        steps={[
+          'Upload a COA PDF or image from your laboratory — drag and drop the file onto the upload zone, or click Browse.',
+          'The AI will automatically extract key fields (product, lot, expiry date, standard curve geometry). Review the results.',
+          'Edit any field that was not extracted correctly — all fields must be valid before proceeding.',
+          'Click Validate Fields to run the automated field check, then click Import into Quantification to continue.',
+        ]}
+      />
       <div className="workflow">
         <div className="step active"><div className="dot">1</div><div>Upload COA</div></div>
         <div className="arrow">→</div>

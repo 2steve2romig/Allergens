@@ -1,3 +1,4 @@
+import PageInstructions from '../components/PageInstructions.jsx'
 import { ALLERGENS, getAllergen } from '../allergens.js'
 import { calcStdRows, calcSampleRows, fitCurve, runQC, evaluateCriteria } from '../utils.js'
 import ChartSvg from '../components/ChartSvg.jsx'
@@ -86,6 +87,17 @@ export default function Step2View({ coaFields, quant, setQuant, fieldValue, save
 
   return (
     <div className="stack">
+
+      <PageInstructions
+        title="Quantification Worksheet"
+        steps={[
+          'Table 1 — Select the allergen type and confirm operator name and assay date.',
+          'Table 2 — Review the COA reference OD values and acceptance criteria imported from your certificate.',
+          'Table 3 — Enter duplicate OD readings from your plate reader for each standard. The curve is fitted automatically.',
+          'Table 4 — Enter duplicate OD readings for each unknown sample. Add or remove samples as needed.',
+          'Table 5 — Review back-calculated concentrations and quantification status, then click Save Quantification.',
+        ]}
+      />
 
       {/* Progress */}
       <div className="workflow">
