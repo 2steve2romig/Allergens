@@ -1,0 +1,26 @@
+<!doctype html>
+<!-- @dsCard group="Components" name="Results table" subtitle="Timestamp · Site · RLU · Result" viewport="700x190" -->
+<html><head><meta charset="utf-8"><title>Results table</title>
+<link rel="stylesheet" href="../colors_and_type.css">
+<style>
+  body{margin:0;padding:20px;background:#fff;font-family:var(--font-sans);}
+  table{width:100%;border-collapse:collapse;font-size:13px;}
+  th{text-align:left;font-weight:600;color:var(--st-text-muted);padding:8px 12px;border-bottom:1px solid var(--st-border);font-size:12px;text-transform:uppercase;letter-spacing:.04em;}
+  td{padding:10px 12px;border-bottom:1px solid #F0F0F0;color:var(--st-text);}
+  .badge{display:inline-flex;align-items:center;gap:5px;font-size:12px;font-weight:600;padding:2px 10px;border-radius:999px;}
+  .pass{background:#E8F5E9;color:#2E7D32;}
+  .fail{background:#FDECEA;color:#C62828;}
+  .caution{background:#FFF8E1;color:#8a5a00;}
+  h3{font-size:11px;letter-spacing:.12em;text-transform:uppercase;color:var(--st-text-muted);margin:0 0 10px;font-weight:600;}
+</style></head>
+<body>
+  <h3>Results table</h3>
+  <table>
+    <thead><tr><th>Timestamp</th><th>Site</th><th>Test</th><th>RLU</th><th>Result</th></tr></thead>
+    <tbody>
+      <tr><td>4/21/2026, 8:38 PM</td><td>Mark's Moo Milk</td><td>ATP</td><td>12</td><td><span class="badge pass">Pass</span></td></tr>
+      <tr><td>4/21/2026, 8:14 PM</td><td>Line 3 · Drain</td><td>ATP</td><td>182</td><td><span class="badge fail">Fail</span></td></tr>
+      <tr><td>4/21/2026, 7:02 PM</td><td>Packer · Belt</td><td>ATP</td><td>54</td><td><span class="badge caution">Caution</span></td></tr>
+    </tbody>
+  </table>
+</body></html>

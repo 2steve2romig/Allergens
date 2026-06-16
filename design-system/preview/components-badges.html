@@ -1,0 +1,22 @@
+<!doctype html>
+<!-- @dsCard group="Components" name="Status badges" subtitle="Pass / Fail / Caution" viewport="700x120" -->
+<html><head><meta charset="utf-8"><title>Status badges</title>
+<link rel="stylesheet" href="../colors_and_type.css">
+<style>
+  body{margin:0;padding:22px 20px;background:#fff;font-family:var(--font-sans);}
+  .row{display:flex;gap:12px;flex-wrap:wrap;align-items:center;}
+  .badge{display:inline-flex;align-items:center;gap:6px;font-size:13px;font-weight:600;padding:5px 12px 5px 8px;border-radius:999px;}
+  .pass{background:#E8F5E9;color:#2E7D32;}
+  .fail{background:#FDECEA;color:#C62828;}
+  .caution{background:#FFF8E1;color:#8a5a00;}
+  .dot{width:16px;height:16px;border-radius:999px;display:inline-flex;align-items:center;justify-content:center;color:#fff;font-size:10px;font-weight:700;}
+  h3{font-size:11px;letter-spacing:.12em;text-transform:uppercase;color:var(--st-text-muted);margin:0 0 12px;font-weight:600;}
+</style></head>
+<body>
+  <h3>Status badges</h3>
+  <div class="row">
+    <span class="badge pass"><span class="dot" style="background:#4CAF50">✓</span>Pass</span>
+    <span class="badge fail"><span class="dot" style="background:#F44336">✕</span>Fail</span>
+    <span class="badge caution"><span class="dot" style="background:#FFC107;color:#4a3500">!</span>Caution</span>
+  </div>
+</body></html>

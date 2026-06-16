@@ -1,0 +1,31 @@
+<!doctype html>
+<!-- @dsCard group="Components" name="Sidebar navigation" subtitle="Sky-blue sidebar, 190px" viewport="700x320" -->
+<html><head><meta charset="utf-8"><title>Sidebar nav</title>
+<link rel="stylesheet" href="../colors_and_type.css">
+<style>
+  body{margin:0;padding:0;background:#fff;font-family:var(--font-sans);display:flex;height:320px;}
+  aside{width:190px;background:#29ABE2;color:#fff;padding:14px 0;display:flex;flex-direction:column;gap:2px;}
+  aside a{display:block;padding:9px 20px;font-size:13px;color:rgba(255,255,255,.85);text-decoration:none;}
+  aside a:hover{background:rgba(255,255,255,.12);color:#fff;}
+  aside a.active{background:rgba(255,255,255,.22);color:#fff;font-weight:600;}
+  .notes{padding:18px 22px;font-size:12px;color:var(--st-text-muted);line-height:1.7;}
+  .notes b{color:var(--st-text);font-weight:600;}
+  .notes code{background:#F5F5F5;padding:1px 6px;border-radius:3px;color:var(--st-text);}
+</style></head>
+<body>
+  <aside>
+    <a class="active">Home</a>
+    <a>Dashboard</a>
+    <a>Results</a>
+    <a>Reports</a>
+    <a>Sites</a>
+    <a>Map</a>
+  </aside>
+  <div class="notes">
+    <b>Sidebar nav</b><br>
+    Width <code>190px</code> · bg <code>#29ABE2</code><br>
+    Text <code>rgba(255,255,255,.85)</code><br>
+    Active <code>rgba(255,255,255,.22)</code> bg · white text<br>
+    Font size <code>13px</code> · 9px/20px padding
+  </div>
+</body></html>

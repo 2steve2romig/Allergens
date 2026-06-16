@@ -18,10 +18,11 @@ export default function Sidebar({ view, setView, startNewWorkflow, openDemoModal
   return (
     <aside className="sidebar">
       <div className="brand">
-        <div className="brand-mark">AllergenIQ</div>
+        <img className="brand-logo" src="/assets/suretrend-cloud-logo.png" alt="SureTrend Cloud" />
+        <div className="brand-mark">AllergenIQ®</div>
         <div className="brand-sub">AI-driven COA ingestion and allergen quantification</div>
       </div>
-<nav className="nav">
+      <nav className="nav">
         {navItems.map(item => (
           <button
             key={item.id}
@@ -38,6 +39,9 @@ export default function Sidebar({ view, setView, startNewWorkflow, openDemoModal
         </div>
       </nav>
       <div className="nav-spacer" />
+      <div className="sidebar-foot">
+        <img src="/assets/hygiena-logo-white.png" alt="Hygiena" />
+      </div>
     </aside>
   )
 }

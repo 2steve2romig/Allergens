@@ -1,0 +1,24 @@
+<!doctype html>
+<!-- @dsCard group="Spacing" name="Elevation" subtitle="Flat-first shadow system" viewport="700x180" -->
+<html><head><meta charset="utf-8"><title>Elevation</title>
+<link rel="stylesheet" href="../colors_and_type.css">
+<style>
+  body{margin:0;padding:22px 20px;background:#F5F5F5;font-family:var(--font-sans);}
+  .row{display:grid;grid-template-columns:repeat(4,1fr);gap:18px;}
+  .card{background:#fff;border-radius:8px;height:90px;display:flex;align-items:center;justify-content:center;font-size:12px;color:var(--st-text-muted);}
+  .xs{box-shadow:var(--shadow-xs);border:1px solid var(--st-border);}
+  .sm{box-shadow:var(--shadow-sm);}
+  .md{box-shadow:var(--shadow-md);}
+  .lg{box-shadow:var(--shadow-lg);}
+  .lbl{font-family:var(--font-mono);font-size:11px;color:var(--st-text-muted);margin-top:8px;text-align:center;}
+  h3{font-size:11px;letter-spacing:.12em;text-transform:uppercase;color:var(--st-text-muted);margin:0 0 14px;font-weight:600;}
+</style></head>
+<body>
+  <h3>Elevation — low, flat surfaces preferred</h3>
+  <div class="row">
+    <div><div class="card xs">flat + border</div><div class="lbl">xs · cards</div></div>
+    <div><div class="card sm">resting</div><div class="lbl">sm · buttons</div></div>
+    <div><div class="card md">raised</div><div class="lbl">md · menus</div></div>
+    <div><div class="card lg">floating</div><div class="lbl">lg · dialog</div></div>
+  </div>
+</body></html>

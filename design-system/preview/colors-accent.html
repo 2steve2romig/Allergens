@@ -1,0 +1,23 @@
+<!doctype html>
+<!-- @dsCard group="Colors" name="Accent colors" subtitle="Purple · Orange · Teal" viewport="700x170" -->
+<html><head><meta charset="utf-8"><title>Accent palette</title>
+<link rel="stylesheet" href="../colors_and_type.css">
+<style>
+  body{margin:0;padding:20px;background:#fff;font-family:var(--font-sans);}
+  .row{display:grid;grid-template-columns:repeat(4,1fr);gap:12px;}
+  .sw{border-radius:8px;overflow:hidden;border:1px solid var(--st-border);}
+  .chip{height:84px;}
+  .meta{padding:8px 10px;}
+  .meta .name{font-size:12px;font-weight:600;color:var(--st-text);}
+  .meta .hex{font-family:var(--font-mono);font-size:11px;color:var(--st-text-muted);margin-top:2px;}
+  h3{font-size:11px;letter-spacing:.12em;text-transform:uppercase;color:var(--st-text-muted);margin:0 0 10px;font-weight:600;}
+</style></head>
+<body>
+  <h3>Accent / interactive</h3>
+  <div class="row">
+    <div class="sw"><div class="chip" style="background:#5B4FA8"></div><div class="meta"><div class="name">Purple</div><div class="hex">#5B4FA8</div></div></div>
+    <div class="sw"><div class="chip" style="background:#E8662A"></div><div class="meta"><div class="name">Orange</div><div class="hex">#E8662A</div></div></div>
+    <div class="sw"><div class="chip" style="background:#2196A8"></div><div class="meta"><div class="name">Teal</div><div class="hex">#2196A8</div></div></div>
+    <div class="sw" style="opacity:.35;border-style:dashed"><div class="chip" style="background:#fff"></div><div class="meta"><div class="name">reserved</div><div class="hex">—</div></div></div>
+  </div>
+</body></html>

@@ -1,0 +1,35 @@
+<!doctype html>
+<!-- @dsCard group="Brand" name="Logo & lockups" subtitle="SureTrend Cloud + Hygiena parent brand" viewport="700x200" -->
+<html><head><meta charset="utf-8"><title>Logo & lockups</title>
+<link rel="stylesheet" href="../colors_and_type.css">
+<style>
+  body{margin:0;padding:18px;background:#fff;font-family:var(--font-sans);display:grid;grid-template-columns:1.1fr 1fr 1fr;gap:14px;}
+  .tile{border:1px solid var(--st-border);border-radius:8px;padding:14px;display:flex;flex-direction:column;justify-content:center;align-items:center;gap:10px;min-height:150px;}
+  .dark{background:#0D6A99;border-color:#0D6A99;}
+  .page{background:#F5F5F5;}
+  .tile img{max-width:90%;max-height:90px;height:auto;display:block;}
+  .lbl{font-family:var(--font-mono);font-size:10px;color:var(--st-text-muted);}
+  .dark .lbl{color:rgba(255,255,255,.8);}
+  .lockup{display:flex;align-items:center;gap:10px;}
+  .lockup .bar{width:1px;height:36px;background:var(--st-border);}
+  .lockup .hyg{height:24px;}
+  .lockup .st{height:44px;}
+</style></head>
+<body>
+  <div class="tile">
+    <img src="../assets/suretrend-cloud-logo.png" alt="SureTrend Cloud" style="max-height:110px">
+    <div class="lbl">product · SureTrend® Cloud</div>
+  </div>
+  <div class="tile page">
+    <div class="lockup">
+      <img class="hyg" src="../assets/hygiena-logo-black.png" alt="Hygiena">
+      <div class="bar"></div>
+      <img class="st" src="../assets/suretrend-cloud-logo.png" alt="SureTrend">
+    </div>
+    <div class="lbl">co-brand lockup</div>
+  </div>
+  <div class="tile dark">
+    <img src="../assets/hygiena-logo-white.png" alt="Hygiena" style="max-height:30px">
+    <div class="lbl">parent · on dark</div>
+  </div>
+</body></html>
